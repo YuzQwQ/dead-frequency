@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>资产预览 / Dead Frequency</title>
+<style>
+  :root { color-scheme: dark; font: 16px "Segoe UI", "Microsoft YaHei", sans-serif; color: #e9e8db; background: #19201d; }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 28px 34px; }
+  header { display: flex; gap: 24px; justify-content: space-between; align-items: end; margin-bottom: 20px; flex-wrap: wrap; }
+  p { color: #dfb383; font: 700 .78rem Consolas, monospace; letter-spacing: .14em; margin: 0 0 .42rem; }
+  h1 { font-size: 1.65rem; margin: 0; }
+  form, label { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  form { gap: 22px; }
+  label { color: #c1cabf; font-size: .87rem; }
+  select { background: #26332b; border: 1px solid #5d6d61; color: #f0ebdf; border-radius: 2px; padding: 7px 9px; }
+  input { accent-color: #dfb383; width: 95px; }
+  [hidden] { display: none; }
+  #stage { height: clamp(340px, calc(100vh - 110px), 850px); width: 100%; overflow: hidden;
+    background: radial-gradient(ellipse at 49% 44%, #626862 0%, #353e38 69%, #29332e 100%); border: 1px solid #536055; }
+  canvas { display: block; }
+</style>
+<body>
+  <header>
+    <div><p>DEAD FREQUENCY / ARMORY</p><h1 id="title">资产预览</h1></div>
+    <form>
+      <label>模型 <select id="weapon"></select></label>
+      <label>视角 <select id="angle"><option value="side">侧视</option><option value="perspective">透视</option></select></label>
+      <label id="travel">泵柄 <input id="pose" type="range" min="0" max="1" step=".01" value="0"></label>
+    </form>
+  </header>
+  <main id="stage" aria-label="武器模型预览"></main>
+  <script type="module" src="/src/tools/model-preview.ts"></script>
+</body>
+</html>

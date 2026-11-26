@@ -1,0 +1,109 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="920" viewBox="0 0 1440 920" role="img" aria-labelledby="title desc">
+  <title id="title">P-12 泵动霰弹枪 · 三款侧视美术概念</title>
+  <desc id="desc">三款面向右侧的低多边形霰弹枪外观。选中的 A 案采用深色机匣、棕色分段泵柄与楔形木质枪托。</desc>
+  <style>
+    text { font-family: "Segoe UI", "Microsoft YaHei", sans-serif; fill: #eeebe0; }
+    .mono { font-family: "Cascadia Mono", Consolas, monospace; font-weight: 700; letter-spacing: 2px; }
+    .secondary { fill: #a4aea5; font-size: 19px; }
+    .selected { fill: #ddac79; }
+    .stock { fill: #654b3d; }
+    .grain { fill: #896651; }
+    .shade { fill: #45372f; }
+    .steel { fill: #333c40; }
+    .edge { fill: #485256; }
+    .dark { fill: #22292d; }
+    .black { fill: #191e20; }
+    .accent { fill: #c09b72; }
+  </style>
+  <rect width="1440" height="920" fill="#191f1d"/>
+  <text x="86" y="72" class="mono selected" font-size="20">DEAD FREQUENCY / ARMORY</text>
+  <text x="84" y="134" font-size="52" font-weight="750">P-12 泵动霰弹枪</text>
+  <text x="86" y="175" class="secondary">外观概念 · 纯侧视</text>
+  <path d="M86 200h1268" stroke="#49544d"/>
+
+  <rect x="84" y="226" width="1272" height="243" fill="#252e28" stroke="#a68464"/>
+  <path d="M373 348h911" stroke="#3b4740"/>
+  <text x="115" y="275" class="mono selected" font-size="24">A / FIELD ISSUE</text>
+  <text x="115" y="313" font-size="27" font-weight="650">封锁站配发型</text>
+  <text x="115" y="350" class="secondary">楔形木托 · 分段泵柄</text>
+  <text x="115" y="390" class="selected" font-size="19">建模选案</text>
+  <g id="field-issue" aria-label="A 案，封锁站配发型">
+    <path class="stock" d="M434 396 449 319 484 310 572 315 618 324 659 324 659 358 619 358 596 380 552 377 515 388 474 408 434 408Z"/>
+    <path class="grain" d="M449 319 484 310 572 315 618 324 597 334 550 329 477 327 445 339Z"/>
+    <path class="shade" d="M434 396 471 395 515 377 548 368 580 369 613 349 659 349 659 358 619 358 596 380 552 377 515 388 474 408 434 408Z"/>
+    <path class="black" d="M416 325 449 319 434 408 416 412 403 404Z"/>
+    <path class="dark" d="M418 333h14l-12 65-9 5Z"/>
+    <path class="black" d="M684 362h105l-17 34h-74l-22-14Zm12 8-9 9 14 10h64l10-19Z" fill-rule="evenodd"/>
+    <path class="dark" d="M850 347h269l15 5v14l-15 5H850Z"/>
+    <path class="steel" d="M814 305h429l12 5v15l-12 5H814Z"/>
+    <path class="edge" d="M814 305h429l12 5H814Z"/>
+    <path class="black" d="M1236 303h23v29h-23Z"/>
+    <path class="accent" d="M1210 301v-9h11l4 9Z"/>
+    <path class="dark" d="M634 306 666 298 824 298 850 312 850 367 826 378 656 378 626 360 626 319Z"/>
+    <path class="steel" d="M634 306 666 298 824 298 850 312 850 356 821 367 660 367 626 352 626 319Z"/>
+    <path class="edge" d="M634 306 666 298 824 298 850 312 843 322 653 321 626 329 626 319Z"/>
+    <path class="black" d="M754 324h77l-9 21h-72Z"/>
+    <path class="edge" d="M755 324h76l-4 6h-72Z"/>
+    <path class="accent" d="M671 339h21v3h-21Zm0 7h14v3h-14Z"/>
+    <path class="black" d="M843 333h18v44h-18Z"/>
+    <g transform="translate(52 0)">
+      <path class="stock" d="M862 337 885 330 1023 330 1045 340 1045 381 1028 395 882 395 860 379Z"/>
+      <path class="grain" d="M862 337 885 330 1023 330 1045 340 1039 349H869Z"/>
+      <path class="shade" d="M860 379h185v2l-17 14H882Z"/>
+      <path class="shade" d="M887 350h9v29h-9Zm27 0h9v29h-9Zm27 0h9v29h-9Zm27 0h9v29h-9Zm27 0h9v29h-9Zm27 0h9v29h-9Z"/>
+    </g>
+    <path class="edge" d="M1106 341h15v36h-15Z"/>
+  </g>
+  <g transform="translate(115 428)">
+    <rect width="24" height="13" fill="#22292d"/>
+    <rect x="30" width="24" height="13" fill="#333c40"/>
+    <rect x="60" width="24" height="13" fill="#654b3d"/>
+    <rect x="90" width="24" height="13" fill="#896651"/>
+    <rect x="120" width="24" height="13" fill="#c09b72"/>
+  </g>
+
+  <rect x="84" y="494" width="1272" height="176" fill="#202825" stroke="#3f4d44"/>
+  <path d="M373 583h911" stroke="#344139"/>
+  <text x="115" y="541" class="mono" font-size="24">B / NIGHT SHIFT</text>
+  <text x="115" y="578" font-size="27" font-weight="650">夜巡紧凑型</text>
+  <text x="115" y="615" class="secondary">黑色合成托 · 短轮廓</text>
+  <g aria-label="B 案，夜巡紧凑型" transform="translate(0 3)">
+    <path fill="#2a3031" d="m421 562 69-7 114 6 57 16-4 26-93-3-65 26-90 4Z"/>
+    <path fill="#46504d" d="m422 562 68-7 114 6 57 16-31 3-109-11-102 10Z"/>
+    <path fill="#191e20" d="m405 558 22 4-12 68-24 4Z"/>
+    <path fill="#191e20" fill-rule="evenodd" d="M637 597h90l-9 28h-69l-16-14Zm13 7-6 6 9 8h58l6-14Z"/>
+    <path fill="#242b2d" d="M807 594h270v17H807Z"/>
+    <path fill="#414b4b" d="m799 552 353-1 19 5v17l-20 3H803Z"/>
+    <rect x="1146" y="549" width="28" height="30" fill="#242b2d"/>
+    <path fill="#4e5653" d="M622 553 653 541h148l41 14 5 48-23 11H658l-39-18Z"/>
+    <path fill="#343e3b" d="M627 570 654 561h183l10 42-23 11H658l-39-18Z"/>
+    <path fill="#1f2727" d="M743 565h73l-6 21h-69Z"/>
+    <path fill="#292f2f" d="m847 586 28-12h137l35 12v29l-25 14H865l-22-18Z"/>
+    <path fill="#505a55" d="M853 593h191v11H850Z"/>
+    <path fill="#647268" d="M880 593h108v4H880Z"/>
+    <path fill="#a38e71" d="M1135 550h-10l4-8h8Z"/>
+  </g>
+
+  <rect x="84" y="695" width="1272" height="176" fill="#202825" stroke="#3f4d44"/>
+  <path d="M373 784h911" stroke="#344139"/>
+  <text x="115" y="742" class="mono" font-size="24">C / YARD SERVICE</text>
+  <text x="115" y="779" font-size="27" font-weight="650">维修队勤务型</text>
+  <text x="115" y="816" class="secondary">钢灰外壳 · 棕色泵柄</text>
+  <g aria-label="C 案，维修队勤务型">
+    <path fill="#393e3d" d="M426 761h80l120 12 30 13-22 25-81-3-76 30-62-1Z"/>
+    <path fill="#59605a" d="M426 761h80l120 12 30 13-38-1-92-13h-102Z"/>
+    <path fill="#222829" d="m410 757 19 4-11 77-21 1Z"/>
+    <path fill="#242a2a" fill-rule="evenodd" d="M642 802h90l-17 25h-69l-11-11Zm10 7-7 7 5 5h59l9-12Z"/>
+    <path fill="#303632" d="M801 804h365v15H801Z"/>
+    <path fill="#4a5351" d="M798 760h462v21H798Z"/>
+    <path fill="#303835" d="M1245 756h26v29h-26Z"/>
+    <path fill="#776a54" d="M1212 760v-9h15l5 9Z"/>
+    <path fill="#4b5451" d="m620 762 43-15 115 6 59 9v41l-27 17H653l-35-21Z"/>
+    <path fill="#333c39" d="m623 779 34-13h180v37l-27 17H653l-35-21Z"/>
+    <path fill="#222828" d="M743 776h69l-7 21h-62Z"/>
+    <path fill="#584b3e" d="m840 799 33-20h153l23 12v37l-24 12H860l-22-16Z"/>
+    <path fill="#7c6650" d="m840 799 33-20h153l23 12-9 10H844Z"/>
+    <path fill="#3b342e" d="M867 810h163v5H867Zm-8 11h171v5H859Z"/>
+    <path fill="#696b58" d="M681 776h7v23h-7Z"/>
+  </g>
+</svg>

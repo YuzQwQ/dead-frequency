@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="652" viewBox="0 0 1440 652" role="img" aria-labelledby="title desc">
+  <title id="title">P-12 · 参考图重制侧视稿</title>
+  <desc id="desc">根据用户提供的左下侧视图整理的游戏武器外观，包含长楔形木托、独立斜握把和整块木质泵柄。</desc>
+  <style>
+    text {font-family:"Segoe UI","Microsoft YaHei",sans-serif;fill:#ece9df}
+    .sub {fill:#aab6aa;font-size:18px}
+    .tag {fill:#ddac79;font:700 16px Consolas,monospace;letter-spacing:2px}
+    .steel {fill:#3b4244}
+    .edge {fill:#555b59}
+    .under {fill:#282e2f}
+    .dark {fill:#1c2222}
+    .wood {fill:#745035}
+    .light {fill:#91663e}
+    .shade {fill:#523b2c}
+  </style>
+  <rect width="1440" height="652" fill="#1a211d"/>
+  <text x="86" y="74" class="tag">DEAD FREQUENCY / P-12</text>
+  <text x="84" y="130" font-size="42" font-weight="700">参考图重制 · 纯侧视</text>
+  <text x="86" y="172" class="sub">以左下侧视为主，右下透视用于核对折面和厚度。</text>
+  <rect x="84" y="215" width="1272" height="317" fill="#252f29" stroke="#506055"/>
+  <path d="M142 367h1152" stroke="#3d4c42"/>
+  <g transform="translate(-114 0)">
+    <path class="wood" d="M432 352 600 339 625 348 660 349 718 324 737 330 737 364 668 369 604 381 440 437Z"/>
+    <path class="light" d="M432 352 600 339 625 348 660 349 718 324 737 330 726 338 663 357 627 355 602 348 434 363Z"/>
+    <path class="shade" d="M434 423 602 375 663 362 727 352 737 364 668 369 604 381 440 437Z"/>
+    <path class="dark" d="M414 349 433 350 441 438 422 442Z"/>
+    <path class="wood" d="M656 366 697 365 677 432 631 423 646 383Z"/>
+    <path class="light" d="M656 366 697 365 690 378 658 377 637 424 631 423 646 383Z"/>
+    <path class="shade" d="M633 414 680 423 677 432 631 423Z"/>
+    <path class="under" d="M894 348h350l8 7v17l-9 6H894Z"/>
+    <path class="steel" d="M892 309h352l11 7v19l-10 8H892Z"/>
+    <path class="edge" d="M897 311h346l8 5H896Z"/>
+    <path class="dark" d="M1213 309v-14h17v14Zm-432-1v-9h123l8 9Z"/>
+    <path class="steel" d="M723 320 749 308 894 308 914 319 914 363 899 373H725Z"/>
+    <path class="edge" d="M723 320 749 308h145l20 11-8 7H735l-12 7Z"/>
+    <path class="dark" d="M838 317h60v31h-60Z"/>
+    <path class="under" d="M847 327h47v16h-47Z"/>
+    <path class="dark" d="M753 364h62v27l-12 11h-39l-15-12Zm5 9v13l10 9h32l8-7v-15Z" fill-rule="evenodd"/>
+    <path class="under" d="M769 369h8v12l9 8-4 3-10-7-3-6Z"/>
+    <path class="under" d="M906 312h17v65h-17Z"/>
+    <path class="wood" d="M974 351 986 345h176l12 8v26l-11 8H981l-7-8Z"/>
+    <path class="light" d="M974 351 986 345h176l12 8-8 6H985Z"/>
+    <path class="shade" d="M974 377h200v2l-11 8H981Z"/>
+    <path class="shade" d="M1147 347h8v37h-8Z"/>
+  </g>
+  <g transform="translate(86 568)">
+    <rect width="25" height="16" fill="#282e2f"/>
+    <rect x="33" width="25" height="16" fill="#3b4244"/>
+    <rect x="66" width="25" height="16" fill="#745035"/>
+    <rect x="99" width="25" height="16" fill="#91663e"/>
+    <text x="148" y="14" class="sub">深灰机匣 · 低饱和棕色木件</text>
+  </g>
+</svg>

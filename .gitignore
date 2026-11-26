@@ -1,0 +1,6 @@
+node_modules/
+dist/
+.pnpm-store/
+.browser/
+test-output/
+/死寂频段.html

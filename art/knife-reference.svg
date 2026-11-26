@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="485" viewBox="0 0 1100 485" role="img" aria-labelledby="title desc">
+  <title id="title">简易小刀 · 游戏外观侧视稿</title>
+  <desc id="desc">根据玩家参考图整理的低多边形小刀，钢灰折面、深蓝握柄和橙色识别块。</desc>
+  <style>
+    text {font-family:"Segoe UI","Microsoft YaHei",sans-serif;fill:#e9e8db}
+    .note {fill:#aab5ab;font-size:17px}
+    .tag {fill:#dfad77;font:700 16px Consolas,monospace;letter-spacing:2px}
+  </style>
+  <rect width="1100" height="485" fill="#1a211d"/>
+  <text x="64" y="62" class="tag">DEAD FREQUENCY / UTILITY KNIFE</text>
+  <text x="62" y="108" font-size="38" font-weight="700">简易小刀</text>
+  <text x="64" y="143" class="note">参考图重制 · 侧视</text>
+  <rect x="62" y="175" width="976" height="237" fill="#26312a" stroke="#506055"/>
+  <path d="M109 289h882" stroke="#44534a"/>
+  <path d="M158 286 283 235 505 232 544 246 544 325 516 338 286 338 205 308Z" fill="#929b99"/>
+  <path d="M158 286 262 281 518 280 516 338 286 338 205 308Z" fill="#67726f"/>
+  <path d="M158 286 291 327 516 327 516 338 286 338 225 319Z" fill="#a6adaa"/>
+  <path d="M303 255 322 246 472 244 453 255Z" fill="#4d5755"/>
+  <path d="M512 198 529 192 535 234 555 240 555 328 537 333 543 377 523 376 516 334Z" fill="#78807e"/>
+  <path d="M535 239 735 234 855 239 893 227 925 239 947 272 945 293 922 328 892 340 854 328 734 330 688 313 655 310 621 319 605 333 544 333 520 286Z" fill="#1e2f3f"/>
+  <path d="M542 248 735 244 852 249 895 236 922 245 939 270 935 296 916 319 895 329 856 318 739 320 692 303 658 300 618 309 601 323 548 323 529 286Z" fill="#33495e"/>
+  <path d="M895 236 920 246 938 272 935 289 916 317 896 324 900 305 914 300 925 280 914 263 897 258Z" fill="#b8733e"/>
+  <path d="M577 232h11l4 7h-16Zm19 0h10l4 7h-15Z" fill="#bd7b48"/>
+  <path d="M558 269h13l10 9v14l-10 10h-13l-11-10v-14Z" fill="#243037"/>
+  <path d="M559 272h11l8 7v11l-8 8h-11l-8-8v-11Z" fill="#a0a6a4"/>
+  <text x="63" y="453" class="note">护手旁的小段橙色在第一人称握持时保留可见。</text>
+</svg>
