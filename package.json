@@ -4,18 +4,27 @@
   "private": true,
   "type": "module",
   "packageManager": "pnpm@11.25.0",
-  "engines": { "node": ">=22.12" },
+  "engines": {
+    "node": ">=22.12"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "build:offline": "tsc --noEmit && node scripts/build-offline.mjs",
+    "build:editor": "tsc --noEmit && node scripts/build-offline.mjs editor",
     "preview": "vite preview",
     "art:preview": "node --experimental-transform-types --disable-warning=ExperimentalWarning scripts/preview-weapon.mjs",
     "test": "node --experimental-transform-types --disable-warning=ExperimentalWarning --test tests/rules.test.mjs",
     "test:e2e": "node tests/browser.mjs",
-    "test:offline": "node tests/offline.mjs"
+    "test:equipment": "node tests/equipment-browser.mjs",
+    "test:offline": "node tests/offline.mjs",
+    "test:editor": "node tests/editor.mjs",
+    "wiki": "node --experimental-transform-types --disable-warning=ExperimentalWarning scripts/build-wiki.mjs",
+    "icons": "node --experimental-transform-types --disable-warning=ExperimentalWarning scripts/build-item-icons.mjs"
   },
-  "dependencies": { "three": "0.181.2" },
+  "dependencies": {
+    "three": "0.181.2"
+  },
   "devDependencies": {
     "@types/three": "0.181.0",
     "playwright": "1.56.1",

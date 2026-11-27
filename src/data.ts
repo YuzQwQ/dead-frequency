@@ -1,86 +1,113 @@
 export const RAID_SECONDS = 15 * 60;
 export const EXTRACT_SECONDS = 6;
-export const BAG_CAPACITY = 18;
-/* 仓库按「堆」计格，一组占一格（和潮汐线后期的口径一致）。
-   只在买入时拦截，撤离带回允许溢出，避免结算因为满仓吞掉战利品。 */
-export const STASH_CAPACITY = 90;
+export const inventorySizes={
+  pocket:[1,1], rigTall:[1,2], rigWide:[2,2], smallBag:[4,4], mediumBag:[5,5], largeBag:[6,6], drawer:[4,2], toolbox:[3,3],
+  supply:[5,4], storage:[6,5], safe:[4,3], stash:[10,20], overflow:[10,1],
+} as const;
+export const BAG_TYPE='largeBag';
+export const BAG_CAPACITY = inventorySizes[BAG_TYPE][0]*inventorySizes[BAG_TYPE][1];
+export const STASH_CAPACITY = inventorySizes.stash[0]*inventorySizes.stash[1];
 
 export type AmmoId = '9mm' | '556' | '12g';
 export type WeaponId = 'k9' | 'ar56' | 'p12';
 export type ArmorId = 'vest' | 'plate';
-export type Slot = 'primary' | 'secondary' | 'armor';
-export type Kind = 'weapon' | 'ammo' | 'armor' | 'medical' | 'salvage';
+export type Slot = 'primary' | 'secondary' | 'helmet' | 'headset' | 'armor' | 'rig' | 'backpack';
+export type Kind = 'weapon' | 'ammo' | 'armor' | 'helmet' | 'headset' | 'rig' | 'backpack' | 'medical' | 'salvage';
 
 /* 主题分类与潮汐线对齐：kind 管「能不能用」，cat 管「在哪一类里出现」。
    med 类战利品（注射器、X 光片）kind 仍是 salvage，不能回血，只是归类在医疗。
-   字段口径也照潮汐线：r 是 1~5 的稀有度，w 是重量（公斤），目前只做展示与后续负重预留。 */
+   字段口径也照潮汐线：r 是 1~5 的稀有度，w 是重量（公斤）。 */
 export type Cat = 'weapon' | 'ammo' | 'armor' | 'med' | 'elec' | 'ind' | 'mil' | 'intel' | 'life' | 'odd';
 
 type ItemDef = {
-  name: string; mark: string; kind: Kind; cat: Cat; r: 1|2|3|4|5;
-  w: number; price: number; size: number; stack: number; description: string;
+  name: string; short?: string; mark: string; kind: Kind; cat: Cat; r: 1|2|3|4|5;
+  w: number; price: number; stack: number; description: string;
 };
 
-export const items = {
-  /* ---------- 武器 / 弹药 / 护甲 ---------- */
-  k9:      {name:'K-9 紧凑手枪', mark:'K9', kind:'weapon', cat:'weapon', r:1, w:1.1, price:320, size:3, stack:1, description:'轻便的半自动自卫武器。'},
-  ar56:    {name:'AR-56 回收员步枪', mark:'AR', kind:'weapon', cat:'weapon', r:4, w:3.6, price:1150, size:6, stack:1, description:'全自动步枪。远距离建议短点射。'},
-  p12:     {name:'P-12 泵动霰弹枪', mark:'P12', kind:'weapon', cat:'weapon', r:2, w:3.2, price:720, size:5, stack:1, description:'近距离高伤害，逐发装填。'},
-  '9mm':   {name:'9×19 mm 弹', mark:'9', kind:'ammo', cat:'ammo', r:1, w:0.012, price:3, size:1, stack:30, description:'用于 K-9。'},
-  '556':   {name:'5.56 mm 弹', mark:'56', kind:'ammo', cat:'ammo', r:1, w:0.013, price:5, size:1, stack:30, description:'用于 AR-56。'},
-  '12g':   {name:'12 号鹿弹', mark:'12', kind:'ammo', cat:'ammo', r:1, w:0.05, price:8, size:1, stack:12, description:'用于 P-12。'},
-  vest:    {name:'旧芳纶背心', mark:'V1', kind:'armor', cat:'armor', r:2, w:7.5, price:310, size:3, stack:1, description:'削减枪伤和近战伤害，防护随受击消耗。'},
-  plate:   {name:'陶瓷插板背心', mark:'V2', kind:'armor', cat:'armor', r:4, w:11.8, price:850, size:4, stack:1, description:'比芳纶更厚重，能吸收更多伤害。'},
+const catalog = {
+  helmetLight:{name:'轻型防护盔',mark:'H1',kind:'helmet',cat:'armor',r:2,w:1.25,price:190,stack:1,description:'轻型复合材料，轻微阻碍听觉。'},
+  helmetHeavy:{name:'重型防护盔',mark:'H2',kind:'helmet',cat:'armor',r:3,w:2.6,price:390,stack:1,description:'钢制防护盔，抑制较远的声源。'},
+  headsetScout:{name:'巡听耳机',mark:'E1',kind:'headset',cat:'armor',r:2,w:0.32,price:150,stack:1,description:'增强脚步并扩大拾音距离。'},
+  headsetQuiet:{name:'降噪耳机',mark:'E2',kind:'headset',cat:'armor',r:3,w:0.42,price:230,stack:1,description:'重点压低环境和高音量声音。'},
+  rigLight:{name:'简易弹挂',mark:'R1',kind:'rig',cat:'armor',r:1,w:0.75,price:120,stack:1,description:'四个 1×2 独立分区。'},
+  rigStandard:{name:'标准弹挂',mark:'R2',kind:'rig',cat:'armor',r:2,w:1.35,price:260,stack:1,description:'四个 1×2 和四个 1×1 分区。'},
+  rigUtility:{name:'多用途弹挂',mark:'R3',kind:'rig',cat:'armor',r:3,w:1.75,price:380,stack:1,description:'两个 2×2、四个 1×1 和两个 1×2 分区，可快速取用野战医疗包。'},
+  packSmall:{name:'小型背包',mark:'B1',kind:'backpack',cat:'armor',r:1,w:0.6,price:115,stack:1,description:'内部 4×4。'},
+  packTactical:{name:'战术背包',mark:'B2',kind:'backpack',cat:'armor',r:2,w:1.15,price:240,stack:1,description:'内部 5×5。'},
+  packLegacy:{name:'旧式背包',mark:'B3',kind:'backpack',cat:'armor',r:2,w:1.4,price:280,stack:1,description:'内部 6×6。'},
+  /* ---------- 武器 / 弹药 / 护甲 ----------
+     型号一律用潮汐线军械库里的真名（M4A1 / Glock 17 / Remington 870），
+     文案只说本作的机制，不抄潮汐线的穿透与弹道描述。 */
+  k9:      {name:'Glock 17', short:'Glock 17', mark:'G17', kind:'weapon', cat:'weapon', r:1, w:1.1, price:320, stack:1, description:'Glock 17，使用 9×19mm 弹药。轻便的半自动自卫武器。'},
+  ar56:    {name:'M4A1', short:'M4A1', mark:'M4', kind:'weapon', cat:'weapon', r:4, w:3.2, price:1150, stack:1, description:'M4A1，使用 5.56×45mm 弹药。全自动步枪，远距离建议短点射。'},
+  p12:     {name:'Remington 870', short:'R870', mark:'870', kind:'weapon', cat:'weapon', r:2, w:3.4, price:720, stack:1, description:'Remington 870，使用 12 号鹿弹。泵动供弹，近距离高伤害，逐发装填。'},
+  '9mm':   {name:'9×19mm 弹', mark:'9', kind:'ammo', cat:'ammo', r:1, w:0.012, price:3, stack:30, description:'用于 Glock 17。'},
+  '556':   {name:'5.56×45mm 弹', mark:'56', kind:'ammo', cat:'ammo', r:1, w:0.013, price:5, stack:30, description:'用于 M4A1。'},
+  '12g':   {name:'12 号鹿弹', mark:'12', kind:'ammo', cat:'ammo', r:1, w:0.05, price:8, stack:12, description:'用于 Remington 870。'},
+  vest:    {name:'旧芳纶背心', mark:'V1', kind:'armor', cat:'armor', r:2, w:7.5, price:310, stack:1, description:'削减枪伤和近战伤害，防护随受击消耗。'},
+  plate:   {name:'陶瓷插板背心', mark:'V2', kind:'armor', cat:'armor', r:4, w:11.8, price:850, stack:1, description:'比芳纶更厚重，能吸收更多伤害。'},
 
   /* ---------- 医疗 ---------- */
-  bandage: {name:'压缩敷料', mark:'+', kind:'medical', cat:'med', r:1, w:0.05, price:65, size:1, stack:3, description:'恢复 28 点生命。'},
-  medkit:  {name:'制式野战医疗包', mark:'M+', kind:'medical', cat:'med', r:2, w:0.6, price:175, size:2, stack:2, description:'恢复 60 点生命。'},
-  med02:  {name:'一次性注射器', mark:'SY', kind:'salvage', cat:'med', r:2, w:0.15, price:300, size:1, stack:2, description:'封口完好，标签被撕掉了。林岑收。'},
-  med03:  {name:'胸片胶片', mark:'XR', kind:'salvage', cat:'med', r:2, w:0.1, price:340, size:1, stack:2, description:'受潮前的最后一批。片角写着别人的名字。'},
+  bandage: {name:'压缩敷料', mark:'+', kind:'medical', cat:'med', r:1, w:0.05, price:65, stack:3, description:'恢复 28 点生命。'},
+  medkit:  {name:'制式野战医疗包', mark:'M+', kind:'medical', cat:'med', r:2, w:1.2, price:175, stack:2, description:'M-17 型野战医疗包，采用耐磨帆布与可拆卸内部隔层，适用于高湿度、低照度及缺乏固定医疗设施的环境。\n\n军需部门曾为这一型号提出二十七项改进要求，其中包括：\n\n「所有主要器械必须能够在佩戴手套时取出。」\n\n「包装开启时不得产生过量噪声。」\n\n「医疗标识应当在泥水浸泡后仍保持可辨认。」\n\n最后一项测试因采购部门忘记准备泥水，最终改在军营后方的排水沟内完成。\n\n恢复 60 点生命。'},
+  med02:  {name:'注射器', mark:'SY', kind:'salvage', cat:'med', r:2, w:0.15, price:300, stack:2, description:'一支保存于独立包装中的医用注射器。针筒刻度清晰，推杆仍能正常活动。'},
+  med03:  {name:'X 光片', mark:'XR', kind:'salvage', cat:'med', r:2, w:0.1, price:340, stack:2, description:'一张装在牛皮纸袋里的医学 X 光胶片。边角微微卷起，透过光线还能辨认出骨骼轮廓。'},
 
   /* ---------- 转播站电子 ---------- */
-  relay:   {name:'氧化继电器', mark:'RL', kind:'salvage', cat:'elec', r:1, w:0.3, price:88, size:1, stack:3, description:'送电时还会响一声。维克托收。'},
-  elec01:  {name:'袖珍收音机', mark:'RD', kind:'salvage', cat:'elec', r:2, w:0.9, price:240, size:2, stack:1, description:'调到中波能听见东西。不是电台，是回响。'},
-  elec03:  {name:'电容计算器', mark:'CC', kind:'salvage', cat:'elec', r:2, w:0.2, price:180, size:1, stack:2, description:'屏幕上留着最后一次运算的结果：0。'},
-  elec02:  {name:'磁带随身听', mark:'WK', kind:'salvage', cat:'elec', r:4, w:0.35, price:980, size:2, stack:1, description:'磁带还在里面。按播放键能出声，所以它很值钱。'},
-  board:   {name:'稳频电路板', mark:'PCB', kind:'salvage', cat:'elec', r:2, w:0.5, price:260, size:2, stack:1, description:'停电后，指示灯保持了整整两天。'},
+  relay:   {name:'氧化继电器', mark:'RL', kind:'salvage', cat:'elec', r:1, w:0.3, price:88, stack:3, description:'送电时还会响一声。维克托收。'},
+  elec01:  {name:'收音机', mark:'RD', kind:'salvage', cat:'elec', r:2, w:0.9, price:240, stack:1, description:'调到中波能听见东西。不是电台，是回响。'},
+  elec03:  {name:'计算器', mark:'CC', kind:'salvage', cat:'elec', r:2, w:0.2, price:180, stack:2, description:'屏幕上留着最后一次运算的结果：0。'},
+  elec02:  {name:'随身听', mark:'WK', kind:'salvage', cat:'elec', r:4, w:0.35, price:980, stack:1, description:'磁带还在里面。按播放键能出声，所以它很值钱——也很有用。'},
+  board:   {name:'电路板', mark:'PCB', kind:'salvage', cat:'elec', r:2, w:0.5, price:260, stack:1, description:'实验所的标准件，外面已经没人生产了。'},
 
   /* ---------- 工业 / 机械 ---------- */
-  copper:  {name:'密封铜线卷', mark:'CU', kind:'salvage', cat:'ind', r:1, w:1.6, price:105, size:2, stack:2, description:'防潮纸上盖着转播站的旧公章。'},
-  ind02:   {name:'旧轴承', mark:'BR', kind:'salvage', cat:'ind', r:2, w:2.2, price:260, size:2, stack:1, description:'转起来还是顺的。手指一推能转很久。'},
-  ind03:   {name:'碎裂压力表', mark:'PG', kind:'salvage', cat:'ind', r:3, w:1.1, price:480, size:2, stack:1, description:'玻璃碎了，指针停在量程上限。它见过那天的压力。'},
+  copper:  {name:'密封铜线卷', mark:'CU', kind:'salvage', cat:'ind', r:1, w:1.6, price:105, stack:2, description:'防潮纸上盖着转播站的旧公章。'},
+  ind02:   {name:'轴承', mark:'BR', kind:'salvage', cat:'ind', r:2, w:2.2, price:260, stack:1, description:'转起来还是顺的。手指一推能转很久。'},
+  ind03:   {name:'压力表', mark:'PG', kind:'salvage', cat:'ind', r:3, w:1.1, price:480, stack:1, description:'一只工业弹簧管压力表，表盘玻璃已经碎裂，指针停在量程上限。内部测压机构可能曾遭受过载，单凭指针位置已无法判断最后一次实际压力。'},
 
   /* ---------- 情报 / 文档 ---------- */
-  tape:    {name:'监听磁带', mark:'T90', kind:'salvage', cat:'intel', r:2, w:0.12, price:225, size:1, stack:1, description:'最后九秒只有空响，倒带以后却多出一段人声。'},
-  intel:   {name:'07 号站密封卷宗', mark:'D7', kind:'salvage', cat:'intel', r:3, w:0.4, price:510, size:2, stack:1, description:'封锁当夜的值班表有三行被划掉。'},
-  life02:  {name:'泛黄旧报纸', mark:'NP', kind:'salvage', cat:'intel', r:1, w:0.2, price:70, size:1, stack:2, description:'日期停在事故前三天。头版是一场没人关心的听证会。'},
-  art03:   {name:'未显影底片', mark:'NG', kind:'salvage', cat:'intel', r:3, w:0.05, price:560, size:1, stack:1, description:'对着光看不出什么。需要显影，但你可能舍不得用掉它。'},
+  tape:    {name:'监听磁带', mark:'T90', kind:'salvage', cat:'intel', r:2, w:0.12, price:225, stack:1, description:'最后九秒只有空响，倒带以后却多出一段人声。'},
+  intel:   {name:'07 号站密封卷宗', mark:'D7', kind:'salvage', cat:'intel', r:3, w:0.4, price:510, stack:1, description:'封锁当夜的值班表有三行被划掉。'},
+  life02:  {name:'旧报纸', mark:'NP', kind:'salvage', cat:'intel', r:1, w:0.2, price:70, stack:2, description:'日期停在事故前三天。头版是一场没人关心的听证会。'},
+  art03:   {name:'摄影底片', mark:'NG', kind:'salvage', cat:'intel', r:3, w:0.05, price:560, stack:1, description:'对着光看不出什么。需要显影，但你可能舍不得用掉它。'},
 
   /* ---------- 军用 ---------- */
-  mil06:   {name:'军用罗盘', mark:'CP', kind:'salvage', cat:'mil', r:3, w:0.25, price:620, size:1, stack:1, description:'刻度盘进了水，指针还是准的。'},
+  mil06:   {name:'军用罗盘', mark:'CP', kind:'salvage', cat:'mil', r:3, w:0.25, price:620, stack:1, description:'采用液体阻尼结构的精密军用罗盘，带有可折叠瞄准镜片和夜光方位刻度。\n\n保护盖内侧固定着一面小镜子，外壳的防滑涂层已经磨损。与普通旅行指南针相比，它更耐碰撞，也更适合长时间野外测绘。'},
 
   /* ---------- 生活 ---------- */
-  life01:  {name:'搪瓷缸', mark:'MG', kind:'salvage', cat:'life', r:1, w:0.4, price:90, size:1, stack:1, description:'磕掉了一块瓷，露出底下的铁。里面的水早就干了。'},
-  life06:  {name:'铝饭盒', mark:'BX', kind:'salvage', cat:'life', r:1, w:0.5, price:110, size:1, stack:1, description:'盖子扣得很紧，里面是一张折了四次的班表。'},
-  life03:  {name:'老式台灯', mark:'LP', kind:'salvage', cat:'life', r:2, w:1.8, price:280, size:2, stack:1, description:'灯泡是好的。这里已经四年没有电了。'},
-  life08:  {name:'玻璃糖罐', mark:'JR', kind:'salvage', cat:'life', r:2, w:0.6, price:230, size:1, stack:1, description:'糖结成一块，底下压着两枚旧硬币。'},
-  life11:  {name:'双铃闹钟', mark:'AL', kind:'salvage', cat:'life', r:3, w:0.9, price:470, size:1, stack:1, description:'发条还能上。它停在 04:17，停得很准。'},
-  life33:  {name:'金丝眼镜', mark:'GL', kind:'salvage', cat:'life', r:5, w:0.05, price:2100, size:1, stack:1, description:'镜片没碎。有人把它摘下来放在桌上，再没回来拿。'},
+  life01:  {name:'搪瓷缸', mark:'MG', kind:'salvage', cat:'life', r:1, w:0.4, price:90, stack:1, description:'磕掉了一块瓷，露出底下的铁。里面的水早就干了。'},
+  life06:  {name:'铝饭盒', mark:'BX', kind:'salvage', cat:'life', r:1, w:0.35, price:110, stack:1, description:'盖子上敲了一串工号，敲得很深。厂子关了，号还留着。'},
+  life03:  {name:'老式台灯', mark:'LP', kind:'salvage', cat:'life', r:2, w:1.6, price:280, stack:1, description:'灯罩烧黑了。插头还在墙上，墙已经不在了。'},
+  life08:  {name:'玻璃糖罐', mark:'JR', kind:'salvage', cat:'life', r:2, w:0.9, price:230, stack:1, description:'还剩半罐话梅糖，糖化了又凝住，把罐底和糖粘成一块。摇不动，也倒不出来。'},
+  life11:  {name:'双铃闹钟', mark:'AL', kind:'salvage', cat:'life', r:3, w:0.6, price:470, stack:1, description:'分针的传动齿轮缺了一齿，每转到 5:47 就卡住。上紧发条还能走，走到那个位置照样停。修表匠在背面贴了张纸条：齿轮缺一齿，非磁化，非进水。'},
+  life33:  {name:'金丝眼镜', mark:'GL', kind:'salvage', cat:'life', r:5, w:0.03, price:2100, stack:1, description:'实金细框，镜腿内侧打着成色戳记，两片镜片都是手工磨边的。左眼的度数比右眼深很多。'},
 
   /* ---------- 异常 ---------- */
-  crystal: {name:'低鸣玻璃', mark:'Δ', kind:'salvage', cat:'odd', r:4, w:0.6, price:1320, size:2, stack:1, description:'贴近耳边时，声音来自房间另一侧。'},
-  core:    {name:'离线谐振芯', mark:'Ω', kind:'salvage', cat:'odd', r:5, w:1.4, price:1940, size:3, stack:1, description:'封铅盒还未开封，内部计数器已在走动。'},
+  crystal: {name:'低鸣玻璃', mark:'Δ', kind:'salvage', cat:'odd', r:4, w:0.6, price:1320, stack:1, description:'贴近耳边时，声音来自房间另一侧。'},
+  core:    {name:'离线谐振芯', mark:'Ω', kind:'salvage', cat:'odd', r:5, w:1.4, price:1940, stack:1, description:'封铅盒还未开封，内部计数器已在走动。'},
 } satisfies Record<string, ItemDef>;
 
-export type ItemId = keyof typeof items;
+export type ItemId = keyof typeof catalog;
+const footprints:Partial<Record<ItemId,readonly [number,number]>>={
+  helmetLight:[2,2],helmetHeavy:[2,2],headsetScout:[2,1],headsetQuiet:[2,1],
+  rigLight:[2,2],rigStandard:[3,2],rigUtility:[3,3],packSmall:[2,2],packTactical:[3,2],packLegacy:[3,3],
+  k9:[2,2],ar56:[5,2],p12:[6,1],vest:[3,3],plate:[3,3],medkit:[2,2],
+  elec01:[2,2],board:[3,1],elec02:[1,2],intel:[2,1],copper:[2,1],ind02:[2,1],
+  ind03:[2,1],life03:[1,2],crystal:[1,2],core:[2,2],
+};
+type GridItemDef=ItemDef & {id:ItemId;width:number;height:number;rotatable:boolean;maxStack:number;weight:number;icon:string};
+export const items=Object.fromEntries((Object.keys(catalog) as ItemId[]).map(id=>{
+  const item=catalog[id], [width,height]=footprints[id] ?? [1,1];
+  return [id,{...item,id,width,height,rotatable:true,maxStack:item.stack,weight:item.w,icon:item.mark}];
+})) as Record<ItemId,GridItemDef>;
 /* 下标就是 r；第 0 位占位，让 r1 直接落到「普通」 */
 export const rarityNames = ['','普通','改良','稀有','珍贵','异常'] as const;
 export const catNames: Record<Cat,string> = {
   weapon:'武器', ammo:'弹药', armor:'护甲', med:'医疗', elec:'电子',
   ind:'工业', mil:'军品', intel:'情报', life:'生活', odd:'异常',
 };
-export const slotNames: Record<Slot, string> = {primary:'主武器', secondary:'副武器', armor:'护甲'};
-export const slots: Slot[] = ['primary','secondary','armor'];
+export const slotNames: Record<Slot, string> = {primary:'主武器', secondary:'副武器', armor:'护甲',helmet:'头盔',headset:'耳机',rig:'弹挂',backpack:'背包'};
+export const slots: Slot[] = ['helmet','headset','armor','primary','secondary','rig','backpack'];
 
 type Weapon = {
   ammo: AmmoId; damage: number; interval: number; capacity: number; reload: number;
@@ -99,11 +126,15 @@ export const armor: Record<ArmorId, {protection:number; durability:number}> = {
 export const healing = {bandage:28, medkit:60} as const;
 
 export const vendors: {name:string; call:string; offers:[ItemId,number][]}[] = [
-  {name:'鲁克', call:'军械台', offers:[['k9',1], ['ar56',1], ['p12',1], ['9mm',15], ['556',15], ['12g',6]]},
+  {name:'鲁克', call:'军械台', offers:[['helmetLight',1],['helmetHeavy',1],['headsetScout',1],['headsetQuiet',1],['rigLight',1],['rigStandard',1],['rigUtility',1],['packSmall',1],['packTactical',1],['packLegacy',1],['k9',1], ['ar56',1], ['p12',1], ['9mm',15], ['556',15], ['12g',6]]},
   {name:'林岑', call:'医疗与防护', offers:[['vest',1], ['plate',1], ['bandage',1], ['medkit',1], ['med02',1]]},
 ];
 
 export type LootKind = 'tool' | 'file' | 'supply' | 'medical' | 'sealed' | 'corpse' | 'anomaly' | 'drop';
+/* 容器等级的中文名，交互提示里直接写出来，玩家一眼知道这是哪一档 */
+export const lootNames:Record<LootKind,string> = {
+  tool:'工具', file:'档案', supply:'补给', medical:'医疗', sealed:'密封', corpse:'遗物', anomaly:'异常', drop:'遗落',
+};
 type Roll = [id:ItemId, weight:number, min?:number, max?:number];
 
 /* 掉落按「地点讲故事」排：工具间是电子与机械，档案柜是情报，
@@ -143,3 +174,12 @@ export const enemyTypes = {
   scav:{hp:73, pace:2.35, view:24, hearing:20, range:16, damage:13, radius:.35, height:1.76},
   echo:{hp:63, pace:4.85, view:15, hearing:28, range:1.55, damage:20, radius:.38, height:1.43},
 } satisfies Record<EnemyKind, Record<string,number>>;
+
+export const helmets={helmetLight:{protection:.30,durability:35,level:1,material:"composite",hearing:.95},helmetHeavy:{protection:.52,durability:62,level:2,material:"steel",hearing:.78}} as const;
+export const headsets={headsetScout:{range:1.28,steps:1.35,ambient:.82,loud:.84},headsetQuiet:{range:1.10,steps:1.12,ambient:.58,loud:.58}} as const;
+export const storageTypes={
+  rigLight:['rigTall','rigTall','rigTall','rigTall'],
+  rigStandard:['rigTall','rigTall','rigTall','rigTall','pocket','pocket','pocket','pocket'],
+  rigUtility:['rigTall','rigTall','pocket','pocket','pocket','pocket','rigWide','rigWide'],
+  packSmall:['smallBag'],packTactical:['mediumBag'],packLegacy:['largeBag'],
+} as const;

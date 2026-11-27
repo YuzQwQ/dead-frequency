@@ -1,7 +1,6 @@
-import { armor, healing } from './data.ts';
-import type { ArmorId } from './data.ts';
-import { inventoryCount, spend } from './inventory.ts';
-import type { Kit } from './inventory.ts';
+import { healing } from './data.ts';
+import { kitWeight, protectedDamage, quickGrids, remove } from './inventory.ts';
+import type { Kit, Stack } from './inventory.ts';
 import type { Input } from './input.ts';
 import type { Collision } from './collision.ts';
 import type { Settings } from './save.ts';
@@ -36,10 +35,14 @@ export class Player {
   private grounded=true;
   private tired=false;
   private stepDistance=0;
+  private burden=0;
 
   constructor(start:Point & {heading:number},readonly kit:Kit) {
     this.x=start.x;this.z=start.z;this.yaw=start.heading;
+    this.updateLoad();
   }
+
+  updateLoad() { this.burden=clamp((kitWeight(this.kit)-14)/30,0,1); }
 
   get eyeY() { return this.feet+this.eye; }
   get bodyHeight() { return this.crouched ? 1.20 : 1.76; }
@@ -71,7 +74,7 @@ export class Player {
     const length=Math.max(1,Math.hypot(fwd,strafe));
     const sprinting=allowSprint && !this.crouched && !aim && !this.tired && this.stamina>0 && fwd>0 &&
       (input.down.has('ShiftLeft') || input.down.has('ShiftRight'));
-    const pace=this.crouched ? 2.05 : sprinting ? 6.15 : aim ? 2.75 : 4.05;
+    const pace=this.crouched ? 2.05 : sprinting ? 6.15*(1-.12*this.burden) : aim ? 2.75 : 4.05;
     const sin=Math.sin(this.yaw),cos=Math.cos(this.yaw);
     this.vx=damp(this.vx,pace*(strafe*cos-fwd*sin)/length,19,dt);
     this.vz=damp(this.vz,pace*(-strafe*sin-fwd*cos)/length,19,dt);
@@ -97,7 +100,7 @@ export class Player {
       this.feet=nextFeet;
       this.grounded=false;
     }
-    this.stamina=clamp(this.stamina+(sprinting && this.walking ? -24 : 17)*dt,0,100);
+    this.stamina=clamp(this.stamina+(sprinting && this.walking ? -24*(1+.3*this.burden) : 17)*dt,0,100);
     if (this.stamina===0) this.tired=true;
     if (this.stamina>24) this.tired=false;
     this.ads=damp(this.ads,aim && !sprinting ? 1 : 0,13,dt);
@@ -118,20 +121,18 @@ export class Player {
     return settings.bob ? Math.sin(this.phase)*Math.min(this.speed/4,1)*.024*(1-.83*this.ads) : 0;
   }
 
-  hurt(amount:number) {
-    const equipped=this.kit.gear.armor;
-    if (equipped?.integrity) {
-      const absorbed=Math.min(equipped.integrity,amount*armor[equipped.id as ArmorId].protection);
-      equipped.integrity=Math.max(0,equipped.integrity-absorbed*1.7);
-      amount-=absorbed;
-    }
+  hurt(amount:number,region:'head'|'body'='body') {
+    amount=protectedDamage(this.kit,amount,region);
     this.hp=Math.max(0,this.hp-amount);
     this.damaged=1;
   }
 
-  heal(id:keyof typeof healing) {
-    if (this.hp>=100 || !inventoryCount(this.kit.bag,id)) return false;
-    spend(this.kit.bag,id,1);
+  heal(id:keyof typeof healing,bound?:Stack) {
+    if (this.hp>=100) return false;
+    const source=quickGrids(this.kit).find(grid=>grid.some(entry=>entry.id===id && (!bound||entry===bound)));
+    if (!source) return false;
+    remove(source,bound ?? source.find(entry=>entry.id===id)!,1);
+    this.updateLoad();
     this.hp=Math.min(100,this.hp+healing[id]);
     return true;
   }

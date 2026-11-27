@@ -1,5 +1,6 @@
 import type { WeaponId } from './data.ts';
 import type { Point } from './sector.ts';
+import { defaultHearing } from './inventory.ts';
 
 type Cue = 'step'|'metalStep'|'reload'|'pump'|'empty'|'hit'|'hurt'|'open'|'zip'|'lock'|'grab'|'ping'|'extract'|'buzz'|'echo'|'scav'
   |'knifeSwing'|'knifeThrust'|'knifeHit';
@@ -15,6 +16,7 @@ export class Audio {
   private listener:Point={x:0,z:0};
   private yaw=0;
   private ambientLevel=0;
+  private hearing=defaultHearing;
 
   get sampleCount() { return this.samples.size; }
 
@@ -58,8 +60,10 @@ export class Audio {
     if (this.ctx && this.output) this.output.gain.setTargetAtTime(volume*.65,this.ctx.currentTime,.06);
   }
 
+  setHearing(hearing:typeof defaultHearing) { this.hearing=hearing; }
+
   ambience(playing:boolean,inside=false) {
-    const level=playing ? (inside ? .054 : .035) : 0;
+    const level=playing ? (inside ? .054 : .035)*this.hearing.ambient : 0;
     if (!this.ctx || !this.ambient || level===this.ambientLevel) return;
     this.ambientLevel=level;
     this.ambient.gain.setTargetAtTime(level,this.ctx.currentTime,.22);
@@ -76,7 +80,7 @@ export class Audio {
     if (source) {
       const dx=source.x-this.listener.x,dz=source.z-this.listener.z;
       const distance=Math.hypot(dx,dz);
-      gain.gain.value=1/(1+distance*.11);
+      gain.gain.value=1/(1+distance*.11/this.hearing.range);
       const pan=ctx.createStereoPanner();
       pan.pan.value=Math.max(-.9,Math.min(.9,(dx*Math.cos(this.yaw)-dz*Math.sin(this.yaw))/Math.max(3,distance)));
       gain.connect(pan).connect(output);
@@ -129,14 +133,16 @@ export class Audio {
   }
 
   gun(weapon:WeaponId,source?:Point) {
-    if (weapon==='ar56' && this.sample(['shot_spear'],source ? .68 : .85,source,.96+Math.random()*.12,.33)) return;
-    if (weapon==='k9') this.transient(.17,129,42,.44,.87,3100,source);
-    else if (weapon==='ar56') this.transient(.19,158,45,.44,.97,4200,source);
-    else this.transient(.29,103,32,.62,1.08,2200,source);
+    const loud=this.hearing.loud;
+    if (weapon==='ar56' && this.sample(['shot_spear'],(source ? .68 : .85)*loud,source,.96+Math.random()*.12,.33)) return;
+    if (weapon==='k9') this.transient(.17,129,42,.44*loud,.87*loud,3100,source);
+    else if (weapon==='ar56') this.transient(.19,158,45,.44*loud,.97*loud,4200,source);
+    else this.transient(.29,103,32,.62*loud,1.08*loud,2200,source);
   }
 
   play(cue:Cue,source?:Point) {
-    if (cue==='step' && this.sample(['step_stone_1','step_stone_2'],.47,source,.89+Math.random()*.23)) return;
+    const steps=source && (cue==='step'||cue==='metalStep') ? this.hearing.steps : 1;
+    if (cue==='step' && this.sample(['step_stone_1','step_stone_2'],.47*steps,source,.89+Math.random()*.23)) return;
     if (cue==='grab' && this.sample(['pickup_1','pickup_2'],.46,source)) return;
     if (cue==='hurt' && this.sample(['hurt_player_1','hurt_player_2'],.54,source)) return;
     if (cue==='echo' && this.sample(['echo_engage'],.55,source,.93+Math.random()*.13,.76)) return;
@@ -152,7 +158,8 @@ export class Audio {
       ping:[.31,880,640,.14,.05,2000],extract:[.58,471,915,.16,.07,1600],
       buzz:[.44,199,66,.1,.11,460],echo:[.38,162,53,.21,.20,670],scav:[.23,109,62,.071,.12,590],
     };
-    this.transient(...sound[cue],source);
+    const [time,start,end,amount,noise,cut]=sound[cue];
+    this.transient(time,start,end,amount*steps,noise*steps,cut,source);
   }
 
   reload(id:WeaponId) {

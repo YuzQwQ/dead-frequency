@@ -1,4 +1,6 @@
-import { enemyTypes } from './data.ts';
+import { enemyTypes, weapons } from './data.ts';
+import { protectedDamage, scavKit } from './inventory.ts';
+import type { Kit } from './inventory.ts';
 import type { EnemyKind } from './data.ts';
 import { enemySites } from './sector.ts';
 import type { EnemySite, Point } from './sector.ts';
@@ -33,10 +35,15 @@ class Enemy {
   route:Point[]=[];
   nextPath=0;
   burst=0;
+  kit?:Kit;
 
   constructor(readonly site:EnemySite,readonly kind:EnemyKind,view:View,index:number,collision:Collision) {
     this.x=site.x;this.z=site.z;this.yaw=site.heading;
     const offset=(Math.random()-.5)*1.55;
+    if (kind==='scav') {
+      let seed=(Math.floor((offset+.775)*1e8)^index)>>>0;
+      this.kit=scavKit('scav-'+index,()=>((seed=(seed*1664525+1013904223)>>>0)/4294967296));
+    }
     if (!collision.blocked(this.x+offset,this.z-offset,.46)) { this.x+=offset;this.z-=offset; }
     this.last={x:this.x,z:this.z};
     this.hp=enemyTypes[kind].hp;
@@ -53,8 +60,8 @@ export class Enemies {
   private noise:Noise={x:0,z:0,radius:0,time:-100};
 
   constructor(private view:View,private collision:Collision,private nav:Navigator,private audio:Audio,
-    private onDeath:(kind:EnemyKind,x:number,z:number)=>void,
-    private onHurt:(damage:number,label:string)=>void, private caption:(text:string,origin:Point)=>void) {
+    private onDeath:(kind:EnemyKind,x:number,z:number,kit?:Kit)=>void,
+    private onHurt:(damage:number,label:string,region?:'head'|'body')=>void, private caption:(text:string,origin:Point)=>void) {
     // The warehouse, lab and both exits always have a threat nearby. Other patrols vary.
     this.units=enemySites.flatMap((site,i) => [0,1,4,5,6,8].includes(i) || Math.random()>.33
       ? [new Enemy(site,site.kind,view,i,collision)] : []);
@@ -168,16 +175,19 @@ export class Enemies {
           if (unit.aimTime<=0 && unit.cooldown<=0 && player.hp>0) {
             unit.state='attack';
             unit.flashTime=.075;
+            const rifle=unit.kit?.gear.primary;
+            if (rifle) rifle.rounds=(rifle.rounds || weapons.ar56.capacity)-1;
             this.audio.gun('ar56',unit);
             const hit=Math.random()<Math.max(.25,.89-dist*.027-player.speed*.026-(player.crouched?.11:0));
+            const head=hit && ((unit.phase*997)%1)<.10;
             const tx=player.x+(hit ? 0 : (Math.random()>.5 ? 1 : -1)*(.45+Math.random()*.8));
             const tz=player.z+(hit ? 0 : (Math.random()-.5)*.7);
-            const ty=player.eyeY-(hit ? .23 : (Math.random()-.25)*1.6);
+            const ty=player.eyeY-(hit ? head ? .025 : .23 : (Math.random()-.25)*1.6);
             const td=Math.hypot(tx-unit.x,ty-eye,tz-unit.z);
             const block=this.collision.cast(unit.x,eye,unit.z,(tx-unit.x)/td,(ty-eye)/td,(tz-unit.z)/td,td);
             const frac=block.distance/td;
             this.view.tracer(unit.x,eye,unit.z,unit.x+(tx-unit.x)*frac,eye+(ty-eye)*frac,unit.z+(tz-unit.z)*frac);
-            if (hit && !block.hit) this.onHurt(def.damage,'拾荒者');
+            if (hit && !block.hit) this.onHurt(def.damage*(head ? 1.7 : 1),'拾荒者',head?'head':'body');
             if (--unit.burst===0) { unit.cooldown=1.35+Math.random()*.55;unit.burst=2+Math.floor(Math.random()*2); }
             else unit.cooldown=.20;
           }
@@ -232,15 +242,15 @@ export class Enemies {
     return victim ? {victim,length,headshot} : null;
   }
 
-  damage(unit:Enemy,amount:number,origin:Point) {
+  damage(unit:Enemy,amount:number,origin:Point,region:'head'|'body'='body') {
     if (unit.state==='dead') return;
     unit.hitTime=.17;
-    unit.hp-=amount;
+    unit.hp-=unit.kit ? protectedDamage(unit.kit,amount,region) : amount;
     unit.alert=7;
     unit.last.x=origin.x;unit.last.z=origin.z;
     if (unit.hp<=0) {
       unit.state='dead';unit.flashTime=0;
-      this.onDeath(unit.kind,unit.x,unit.z);
+      this.onDeath(unit.kind,unit.x,unit.z,unit.kit);
     }
   }
 }

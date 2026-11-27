@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>物品图标渲染 / Dead Frequency</title>
+<style>
+  :root { color-scheme: dark; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: transparent; }
+  /* 默认透明，供截图用 omitBackground；加 ?bg=1 时显示棋盘格方便肉眼校对 */
+  body.checker { background: repeating-conic-gradient(#2a342e 0 25%, #202a25 0 50%) 0 0 / 16px 16px; }
+  #stage { width: 100vw; height: 100vh; }
+  canvas { display: block; }
+</style>
+<body>
+<div id="stage"></div>
+<script type="module" src="/src/tools/item-icon.ts"></script>

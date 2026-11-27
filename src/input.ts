@@ -1,3 +1,5 @@
+type KeyboardLock = {lock(codes:string[]):Promise<void>;unlock():void};
+
 export class Input {
   readonly down = new Set<string>();
   private pressed = new Set<string>();
@@ -8,16 +10,46 @@ export class Input {
   aim=false;
   shot=false;
   altShot=false;
-  locked=false;
+  get locked() { return document.pointerLockElement===this.canvas; }
+  private voluntary=false;
+  private fullscreenWanted=false;
+  private fullscreenGeneration=0;
+  private keyboardLocked=false;
+  private readonly keyboard=(navigator as Navigator & {keyboard?:KeyboardLock}).keyboard;
+  get capturesEscape() { return this.keyboardLocked && document.fullscreenElement===document.documentElement; }
   /* 滚轮只在锁定时累计，按 40px 折算一格（触控板一次滑动会连发好几个事件） */
   private wheel=0;
 
-  constructor(readonly canvas:HTMLCanvasElement, changed:(locked:boolean)=>void) {
+  constructor(readonly canvas:HTMLCanvasElement, changed:(locked:boolean, voluntary:boolean)=>void,
+    interrupted:()=>void, denied:()=>void) {
     const {signal}=this.controller;
     document.addEventListener('pointerlockchange',() => {
-      this.locked=document.pointerLockElement===canvas;
-      this.clear();
-      changed(this.locked);
+      const locked=this.locked;
+      /* 是不是我们自己放开的（开面板 / 进暂停）：这种丢锁不该提示玩家 */
+      const voluntary=this.voluntary;
+      this.voluntary=false;
+      if (!locked) this.clear();
+      changed(locked,voluntary);
+    },{signal});
+    document.addEventListener('pointerlockerror',denied,{signal});
+    document.addEventListener('fullscreenchange',async()=>{
+      const root=document.documentElement;
+      const generation=++this.fullscreenGeneration;
+      if (document.fullscreenElement!==root) {
+        const wasRequested=this.fullscreenWanted;
+        this.fullscreenWanted=false;
+        this.unlockKeyboard();
+        if (wasRequested) {this.release();interrupted();}
+        return;
+      }
+      if (!this.fullscreenWanted) return;
+      try {
+        await this.keyboard!.lock(['Escape']);
+        if (generation===this.fullscreenGeneration && this.fullscreenWanted) this.keyboardLocked=true;
+      } catch {
+        if (generation===this.fullscreenGeneration && this.fullscreenWanted)
+          await document.exitFullscreen().catch(()=>{});
+      }
     },{signal});
     document.addEventListener('mousemove',event => {
       if (!this.locked) return;
@@ -49,21 +81,51 @@ export class Input {
       if (this.locked) event.preventDefault();
     },{signal});
     window.addEventListener('blur',() => {
-      this.clear();
       this.release();
+      interrupted();
     },{signal});
   }
 
-  lock(onError:()=>void) {
+  lock(onError?:()=>void) {
     try {
       const request=this.canvas.requestPointerLock();
-      if (request) void request.catch(onError);
-    } catch { onError(); }
+      if (request) void request.catch(() => onError?.());
+    } catch { onError?.(); }
+  }
+
+  enterFullscreen() {
+    const root=document.documentElement;
+    if (!this.keyboard?.lock || !root.requestFullscreen || !document.fullscreenEnabled || document.fullscreenElement) return;
+    this.fullscreenWanted=true;
+    try {
+      void root.requestFullscreen().then(()=>{
+        if (!this.fullscreenWanted && document.fullscreenElement===root)
+          return document.exitFullscreen();
+      }).catch(()=>{this.fullscreenWanted=false;});
+    } catch {this.fullscreenWanted=false;}
+  }
+
+  private unlockKeyboard() {
+    this.keyboardLocked=false;
+    this.keyboard?.unlock();
+  }
+
+  endSession() {
+    const exit=this.fullscreenWanted || this.keyboardLocked;
+    this.fullscreenWanted=false;
+    this.fullscreenGeneration++;
+    this.unlockKeyboard();
+    this.release();
+    if (exit && document.fullscreenElement===document.documentElement)
+      void document.exitFullscreen().catch(()=>{});
   }
 
   release() {
     this.clear();
-    if (document.pointerLockElement===this.canvas) document.exitPointerLock();
+    if (document.pointerLockElement===this.canvas) {
+      this.voluntary=true;
+      document.exitPointerLock();
+    }
   }
 
   pop(code:string) { return this.pressed.delete(code); }
@@ -82,7 +144,7 @@ export class Input {
   }
 
   dispose() {
-    this.release();
+    this.endSession();
     this.controller.abort();
   }
 }

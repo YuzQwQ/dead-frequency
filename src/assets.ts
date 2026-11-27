@@ -6,8 +6,10 @@ import { ModelParts } from './model-parts.ts';
 import type { XYZ } from './model-parts.ts';
 import { weaponRecipes } from './models/weapons.ts';
 import { knifeRecipe } from './models/knife.ts';
+import { buildProp } from './props.ts';
+import type { Kit } from './inventory.ts';
 
-type Shape = 'box' | 'barrel' | 'wedge' | 'shard' | 'plane';
+type Shape = 'box' | 'barrel' | 'wedge' | 'shard' | 'plane' | 'cone';
 type Stamp = {shape:Shape; color:number; matrix:T.Matrix4};
 type Build = (shape:Shape,color:number,x:number,y:number,z:number,w:number,h:number,d:number,rx?:number,ry?:number,rz?:number) => void;
 export type ActorModel = {root:T.Group; torso:T.Group; head:T.Group; limbs:T.Group[]; flash:T.Mesh; hit:T.Mesh};
@@ -22,10 +24,12 @@ const containers:Record<LootKind, [number,number]> = {
 export class AssetFactory {
   private materials = new Map<number,T.MeshStandardMaterial>();
   private extra: (T.Material | T.Texture)[] = [];
+  /* 同一类容器外形一致，描边几何复用；材质每箱一份，因为透明度各不相同 */
+  private outlines = new Map<string,T.EdgesGeometry>();
   readonly geometry:Record<Shape,T.BufferGeometry> = {
     box:new T.BoxGeometry(), barrel:new T.CylinderGeometry(.5,.5,1,8),
     wedge:new T.CylinderGeometry(.5,.5,1,3), shard:new T.OctahedronGeometry(.5),
-    plane:new T.PlaneGeometry(),
+    plane:new T.PlaneGeometry(), cone:new T.CylinderGeometry(.16,.5,1,8),
   };
   readonly impact = new T.MeshBasicMaterial({color:0xffffff});
   private modelParts=new ModelParts(this.geometry,color=>this.material(color));
@@ -35,6 +39,7 @@ export class AssetFactory {
     Object.values(this.geometry).forEach(g => g.dispose());
     this.materials.forEach(m => m.dispose());
     this.extra.forEach(resource => resource.dispose());
+    this.outlines.forEach(g => g.dispose());
     this.impact.dispose();
   }
 
@@ -322,58 +327,78 @@ export class AssetFactory {
       add('box',containers[kind][1],0,.30,0,.67,.08,.45);
       for (const side of [-1,1]) add('box',0x343c30,side*.20,.18,0,.07,.31,.46);
     }
+    /* 贴体的细描边：默认隐形，由 View 按距离给透明度。
+       用 EdgesGeometry 而不是缩放模型，线宽恒为 1px，不会随距离变粗。 */
+    const box=new T.Box3().setFromObject(group);
+    const size=box.getSize(new T.Vector3()).multiplyScalar(1.12);
+    const edges=this.outlineGeometry(`crate:${kind}`,size.x,size.y,size.z);
+    const line=this.outlineLine(edges,0);
+    line.position.copy(box.getCenter(new T.Vector3()));
+    group.add(line);
+    group.userData.outline=line;
     return group;
+  }
+
+  private outlineGeometry(key:string,w:number,h:number,d:number) {
+    let edges=this.outlines.get(key);
+    if (!edges) {
+      const cast=new T.BoxGeometry(w,h,d);
+      edges=new T.EdgesGeometry(cast);
+      cast.dispose();
+      this.outlines.set(key,edges);
+    }
+    return edges;
+  }
+
+  private outlineLine(edges:T.EdgesGeometry,y:number) {
+    const line=new T.LineSegments(edges,new T.LineBasicMaterial({
+      color:0xffe2b4, transparent:true, opacity:0, depthWrite:false,
+    }));
+    line.position.y=y;
+    line.name='outline';
+    line.renderOrder=2;
+    line.visible=false;
+    return line;
+  }
+
+  /* 烤进地图网格的那批静态容器没有独立模型，描边单独生成，尺寸与 caseParts 对齐 */
+  containerOutline(kind:LootKind,h:number) {
+    const tall=h>1.1;
+    const w=(tall ? .78 : 1.13)*1.12;
+    const edges=this.outlineGeometry(`${kind}:${tall ? 'tall' : 'low'}`,w,h*1.12,.58*1.12);
+    return this.outlineLine(edges,h/2);
+  }
+
+  /* 每个箱子的描边材质是独立的（透明度不同），回收时要单独释放 */
+  disposeCache(model:T.Object3D) {
+    const line=model.userData.outline as T.LineSegments|undefined;
+    if (line) (line.material as T.Material).dispose();
+    model.removeFromParent();
   }
 
   gun(id:WeaponId, firstPerson=true):WeaponModel {
     const recipe=weaponRecipes[id];
-    if (recipe) {
-      const {root,nodes}=this.modelParts.build(recipe,firstPerson);
-      const model=this.weaponEffects(root,recipe.muzzle,recipe.sightHeight,recipe.viewDepth);
-      if (recipe.motion) {
-        const joint=nodes.get(recipe.motion.part);
-        if (!joint) throw new Error(`Missing motion part ${recipe.motion.part} for ${id}`);
-        const at=joint.position.clone(), travel=new T.Vector3(...recipe.motion.travel);
-        model.posePump=amount=>joint.position.copy(at).addScaledVector(travel,amount);
-      }
-      return model;
+    const {root,nodes}=this.modelParts.build(recipe,firstPerson);
+    const model=this.weaponEffects(root,recipe.muzzle,recipe.sightHeight,recipe.viewDepth);
+    if (recipe.motion) {
+      const joint=nodes.get(recipe.motion.part);
+      if (!joint) throw new Error(`Missing motion part ${recipe.motion.part} for ${id}`);
+      const at=joint.position.clone(), travel=new T.Vector3(...recipe.motion.travel);
+      model.posePump=amount=>joint.position.copy(at).addScaledVector(travel,amount);
     }
-    const root=new T.Group(), add=this.assembly(root);
-    const metal=0x354048, slide=0x6b7774, dark=0x252d2e, wood=0x755541;
-    const muzzle=-(id==='k9' ? .77 : 1.17);
-    if (id==='k9') {
-      add('box',metal,0,0,-.50,.18,.17,.44);
-      add('box',slide,0,.107,-.54,.17,.095,.42);
-      add('box',dark,0,-.19,-.35,.15,.32,.18,-.23);
-      add('barrel',dark,0,.09,-.726,.095,.085,.095,Math.PI/2);
-      add('box',dark,.086,.113,-.56,.016,.041,.105);
-      for (let i=0;i<4;i++) for (const side of [-1,1]) {
-        add('box',metal,side*.087,.104,-.399-i*.027,.007,.058,.009,-.14);
-      }
-    } else {
-      add('box',metal,0,0,-.48,.22,.19,.43);
-      add('box',dark,0,.11,-.50,.14,.06,.44);
-      add('box',wood,0,-.015,-.78,.19,.15,.28);
-      add('barrel',slide,0,.037,-1,.071,.34,.071,Math.PI/2);
-      add('barrel',dark,0,.037,-1.12,.11,.08,.11,Math.PI/2);
-      add('box',dark,0,-.18,-.54,.127,.28,.15,.23);
-      add('box',dark,0,-.04,-.12,.17,.16,.28);
-      add('box',wood,0,-.084,-.02,.19,.21,.14);
-    }
-    for (const side of [-1,1]) add('box',dark,side*.053,.173,id==='k9' ? -.39 : -.43,.037,.045,.053);
-    add('box',0xc1a57b,0,.168,muzzle+.065,.029,.025,.035);
-    add('box',dark,0,-.125,-.48,.13,.065,.20);
-    if (firstPerson) {
-      add('box',0x747559,.09,-.235,-.25,.20,.175,.22,.13,0,-.35);
-      add('box',0x424f49,.24,-.35,-.19,.24,.25,.42,-.31,.08,-.45);
-      add('box',0x727457,-.073,-.13,id==='k9' ? -.41 : -.74,.17,.14,.19,.14,0,.32);
-      add('box',0x46564b,-.16,-.26,id==='k9' ? -.30 : -.57,.21,.22,.37,-.18,0,.34);
-    }
-    return this.weaponEffects(root,[0,.055,muzzle-.06],.173);
+    return model;
   }
 
   knife(firstPerson=true) {
     return this.modelParts.build(knifeRecipe,firstPerson).root;
+  }
+
+  /* 收集品的程序化模型：图标截图与游戏内掉落物共用同一份几何。
+     以后要接 GLTF，只需要在这里换一次实现。 */
+  prop(id:string) {
+    const root=new T.Group();
+    buildProp(this.assembly(root),id);
+    return root;
   }
 
   private weaponEffects(root:T.Group,muzzle:XYZ,sightHeight:number,viewDepth=0):WeaponModel {
@@ -383,7 +408,7 @@ export class AssetFactory {
     return {root,flash,sightHeight,viewDepth};
   }
 
-  actor(kind:EnemyKind):ActorModel {
+  actor(kind:EnemyKind,preview?:Kit):ActorModel {
     const root=new T.Group(), torso=new T.Group(), head=new T.Group();
     const echo=kind==='echo';
     torso.position.y=echo ? .77 : .94; root.add(torso);
@@ -391,16 +416,32 @@ export class AssetFactory {
     const body=this.assembly(torso), face=this.assembly(head);
     const cloth=echo ? 0x42625d : 0x777a5f, trim=echo ? 0x659082 : 0x4c5645;
     body('box',cloth,0,.13,0,echo ? .55 : .49,.53,.3,echo ? -.29 : 0,0,echo ? -.08 : 0);
-    body('box',trim,0,.09,-.15,.39,.26,.09);
+    if (!preview || preview.gear.armor)
+      body('box',preview?.gear.armor?.id==='plate' ? 0x465156 : trim,0,.09,-.15,.39,.26,.09);
     if (!echo) {
-      body('box',0x977950,0,.14,.22,.37,.49,.27);
+      if (preview) body('box',0x77705a,0,.405,0,.18,.18,.16);
+      if (!preview || preview.gear.backpack) {
+        const tactical=preview?.gear.backpack?.id==='packTactical';
+        body('box',!preview ? 0x977950 : tactical ? 0x48625a : 0x827453,0,.14,preview ? .24 : .22,tactical ? .44 : .37,.49,preview ? .28 : .27);
+        if (preview) body('box',0x585946,0,.045,.39,.29,.18,.07);
+      }
+      if (preview?.gear.rig) {
+        body('box',0x88785b,0,.025,-.21,.38,.165,.09);
+        for (const x of [-.125,0,.125]) body('box',0x61644e,x,.03,-.26,.09,.12,.025);
+      }
       body('box',0x38443a,0,-.13,0,.51,.10,.34);
     } else {
       body('shard',0x88c8b1,.11,.27,-.16,.22,.45,.25,0,.27,.31);
       body('shard',0x588b81,-.24,.38,.06,.22,.35,.25,.24,0,-.62);
     }
     face('box',echo ? 0x8cafa0 : 0xa6997f,0,.06,0,.31,.30,.29,0,0,echo ? -.17 : 0);
-    face('box',echo ? 0x324e48 : 0x515b4c,0,.18,.007,.35,.13,.34);
+    if (!preview || preview.gear.helmet)
+      face('box',preview?.gear.helmet?.id==='helmetHeavy' ? 0x424d49 : echo ? 0x324e48 : 0x515b4c,0,preview ? .195 : .18,.007,
+        preview ? .37 : .35,preview ? .14 : .13,preview ? .35 : .34);
+    if (preview?.gear.headset) {
+      face('box',0x313939,0,.24,.01,.34,.038,.095);
+      for (const x of [-.168,.168]) face('box',0x3f4b44,x,.07,.025,.065,.155,.13);
+    }
     face('box',0x26322e,0,.076,-.155,.28,.074,.045);
     for (const dx of [-.078,.078]) face('box',echo ? 0x8be5bf : 0x928675,dx,.085,-.182,.046,.034,.025);
     const limbs:T.Group[]=[];
@@ -416,7 +457,7 @@ export class AssetFactory {
       limbs.push(arm,leg);
     }
     let flash:T.Mesh=new T.Mesh(this.geometry.shard,this.impact);
-    if (!echo) {
+    if (!echo && !preview) {
       const gun=this.gun('ar56',false);
       gun.root.position.set(.23,.05,.17); gun.root.scale.setScalar(.73);
       gun.root.name='weapon'; torso.add(gun.root);

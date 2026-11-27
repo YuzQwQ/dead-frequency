@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 620 420" role="img" aria-labelledby="title">
+  <title id="title">Dead Frequency Glock 17 低多边形侧视设计</title>
+  <rect width="620" height="420" fill="#e6e7e6"/>
+  <g transform="translate(31 36)">
+    <path d="M31 53H44V94H31Z" fill="#262a2e"/>
+    <path d="M48 40H527L537 51V106H39V53Z" fill="#545a62"/>
+    <path d="M48 40H527L537 51H44Z" fill="#727880"/>
+    <path d="M42 96H537V106H39Z" fill="#343940"/>
+    <path d="M250 42H327V79H250Z" fill="#313940"/>
+    <path d="M259 46H325V73H259Z" fill="#414b54"/>
+    <path d="M64 54H234V82H64Z" fill="#494f56"/>
+    <path d="M424 53V100M437 53V100M450 53V100M463 53V100M476 53V100M489 53V100M502 53V100" stroke="#343a40" stroke-width="5"/>
+    <path d="M56 40L61 29H78L84 40ZM497 40L502 29H520L524 40Z" fill="#30363b"/>
+    <path d="M39 110H537V120L501 136L487 154L487 178L531 310L520 326H403L390 313L395 298L355 193L333 163L280 157H47L39 149Z" fill="#383d44"/>
+    <path d="M359 172L384 166L468 161L478 181L517 301L508 318H410L410 298Z" fill="#41464e"/>
+    <path d="M53 124H168V132H53ZM53 142H168V150H53Z" fill="#252a30"/>
+    <path d="M226 153H241L244 210L264 224H322L344 212L352 182L364 194L353 225L325 236H260L226 219L233 208Z" fill="#2b3036"/>
+    <path d="M304 155H321L323 186L310 208L300 213L294 208L307 181Z" fill="#343a41"/>
+    <path d="M395 311H522L530 324L522 335H405L391 324Z" fill="#242a30"/>
+    <path d="M407 325H519L522 330H407Z" fill="#494f55"/>
+    <circle cx="320" cy="133" r="5" fill="#b05250"/>
+    <path d="M368 112H393L402 122L396 129H367Z" fill="#465463"/>
+  </g>
+</svg>

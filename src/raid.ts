@@ -1,4 +1,4 @@
-import { BAG_CAPACITY, EXTRACT_SECONDS, RAID_SECONDS, items, weapons } from './data.ts';
+import { EXTRACT_SECONDS, RAID_SECONDS, items, lootNames, weapons } from './data.ts';
 import type { EnemyKind, LootKind } from './data.ts';
 import { areaAt, buildingAt, containerSites, exits, starts } from './sector.ts';
 import type { Exit, Point } from './sector.ts';
@@ -6,17 +6,19 @@ import { Collision, Navigator } from './collision.ts';
 import { Player } from './player.ts';
 import { Enemies } from './enemies.ts';
 import { Combat } from './combat.ts';
-import { kitEntries, rollLoot, takeValue, transfer } from './inventory.ts';
+import { carriedGrids, defaultHearing, hearingFor, isLoaded, kitEntries, packItem, pruneQuick, quickGrids, rollLoot, takeValue, transfer, transferAcross } from './inventory.ts';
 import type { Kit, Stack } from './inventory.ts';
 import type { Settings, Result } from './save.ts';
 import type { Input } from './input.ts';
 import type { View } from './view.ts';
 import type { Audio } from './audio.ts';
-import type { Group } from 'three';
+import type { Group, LineSegments } from 'three';
 import { knifeName } from './melee.ts';
+import { containerType, gridOf, registerInventory } from './grid-inventory.ts';
 
 export type Cache = Point & {
   key:string; name:string; kind:LootKind; h:number; entries:Stack[]; searched:boolean; model?:Group;
+  outline?:LineSegments; character?:Kit;
 };
 type Search = {cache:Cache; remaining:number; duration:number; origin:Point};
 export type HudData = {
@@ -56,13 +58,17 @@ export class Raid {
     this.player=new Player(this.start,kit);
     this.collision=new Collision(view.solids);
     const nav=new Navigator(this.collision);
-    this.caches=containerSites.map(site => ({...site,key:'c'+this.seq++,entries:rollLoot(site.kind),searched:false}));
+    this.caches=containerSites.map((site,index) => {
+      const key='c'+this.seq++;
+      return {...site,key,entries:rollLoot(site.kind,Math.random,key),searched:false,outline:this.view.cacheOutlines[index]};
+    });
     this.enemies=new Enemies(view,this.collision,nav,audio,
-      (kind,x,z) => this.death(kind,x,z),
-      (damage,label) => this.hurt(damage,label),
+      (kind,x,z,kit) => this.death(kind,x,z,kit),
+      (damage,label,region) => this.hurt(damage,label,region),
       (message,origin) => this.caption(message,origin),
     );
     this.combat=new Combat(this.player,view,this.collision,this.enemies,audio,events.notice);
+    this.audio.setHearing(hearingFor(kit));
     this.render();
   }
 
@@ -87,6 +93,10 @@ export class Raid {
       this.audio.play('grab');
     }
     if (this.input.pop('KeyH')) this.heal();
+    for (const key of ['4','5','6','7']) if (this.input.pop('Digit'+key)) {
+      const entry=quickGrids(p.kit).flat().find(item=>item.key===p.kit.quick?.[key]);
+      if (entry && (entry.id==='bandage'||entry.id==='medkit')) this.heal(entry.id,entry);
+    }
     if (this.input.pop('Tab')) { this.search=undefined;this.events.inventory();return; }
     if (this.input.pop('KeyM')) { this.events.map();return; }
 
@@ -95,6 +105,7 @@ export class Raid {
     this.view.animate(dt,this.elapsed);
     if (p.hp<=0) { this.finish('dead');return; }
     this.findTarget();
+    this.view.updateCaches(this.caches,p.x,p.z,this.elapsed,this.target?.key);
     if (this.input.pop('KeyE')) this.interact();
     if (this.search) {
       const {cache,origin}=this.search;
@@ -109,6 +120,18 @@ export class Raid {
         }
       }
     }
+    this.updateExtraction(dt);
+  }
+
+  updateWhileManaging(dt:number) {
+    if (!this.running) return;
+    this.captionTime=Math.max(0,this.captionTime-dt);
+    this.enemies.update(dt,this.elapsed,this.player);
+    if (this.player.hp<=0) {this.finish('dead');return;}
+    this.updateExtraction(dt);
+  }
+
+  private updateExtraction(dt:number) {
     if (this.activeExit) {
       if (this.exit!==this.activeExit) {
         this.activeExit=undefined;
@@ -144,6 +167,7 @@ export class Raid {
 
   /* 关闭面板回现场：环境音按当前是否在室内重新起，下一帧 update 会继续接管 */
   resume() {
+    this.audio.setHearing(hearingFor(this.player.kit));
     this.audio.ambience(true,Boolean(buildingAt(this.player.x,this.player.z)));
   }
 
@@ -178,7 +202,8 @@ export class Raid {
     const cache=this.target;
     if (!cache) return;
     if (cache.searched) { this.open(cache);return; }
-    const duration=cache.kind==='sealed' ? 1.65 : cache.kind==='corpse' || cache.kind==='anomaly' ? .70 : .88;
+    /* 站桩读条只负责「撬开」；看清里面有什么交给面板里的扫描 */
+    const duration=cache.kind==='sealed' ? 1.15 : cache.kind==='corpse' || cache.kind==='anomaly' ? .45 : .55;
     this.search={cache,remaining:duration,duration,origin:{x:this.player.x,z:this.player.z}};
     this.audio.play(cache.kind==='sealed' ? 'lock' : cache.kind==='corpse' || cache.kind==='medical' ? 'zip' : 'open',cache);
     this.enemies.alert(cache.x,cache.z,cache.kind==='sealed' ? 14 : 5,this.elapsed);
@@ -193,10 +218,11 @@ export class Raid {
     this.events.inventory(cache);
   }
 
-  private death(kind:EnemyKind,x:number,z:number) {
+  private death(kind:EnemyKind,x:number,z:number,kit?:Kit) {
     this.kills++;
     const loot=kind==='echo' ? 'anomaly' : 'corpse';
-    this.spawnCache(loot,kind==='echo' ? '回响体残骸' : '拾荒者随身包',x,z,rollLoot(loot),false);
+    const cache=this.spawnCache(loot,kind==='echo' ? '回响体残骸' : '拾荒者尸体',x,z,kit ? [] : rollLoot(loot),false);
+    cache.character=kit;
   }
 
   private spawnCache(kind:LootKind,name:string,x:number,z:number,entries:Stack[],searched:boolean) {
@@ -204,20 +230,24 @@ export class Raid {
     model.position.set(x,0,z);
     model.rotation.y=Math.random()*6.28;
     this.view.dynamic.add(model);
-    const cache:Cache={key:'c'+this.seq++,x,z,h:.49,name,kind,entries,searched,model};
+    const cache:Cache={key:'c'+this.seq++,x,z,h:.49,name,kind,entries,searched,model,
+      outline:model.userData.outline as LineSegments|undefined};
+    const grid=gridOf(entries) ?? registerInventory(entries,containerType[kind],undefined,item=>kind==='drop'||!isLoaded(item));
+    grid.inventoryId=cache.key;
+    for (const entry of entries) entry.inventoryId=cache.key;
     this.caches.push(cache);
     return cache;
   }
 
   collect(cache:Cache,entry:Stack) {
-    const added=transfer(cache.entries,this.player.kit.bag,entry,BAG_CAPACITY);
+    const added=transferAcross(cache.entries,packItem(this.player.kit,entry),entry);
     if (added) this.audio.play('grab');
     return added;
   }
 
-  drop(entry:Stack) {
-    const bag=this.player.kit.bag;
-    if (!bag.includes(entry)) return false;
+  drop(entry:Stack,source?:Stack[]) {
+    const bag=source ?? carriedGrids(this.player.kit).find(grid=>grid.includes(entry));
+    if (!bag?.includes(entry)) return false;
     const p=this.player;
     const dx=-Math.sin(p.yaw)*1.28,dz=-Math.cos(p.yaw)*1.28;
     const point={x:p.x,z:p.z};
@@ -225,31 +255,35 @@ export class Raid {
     let cache=this.caches.find(c => c.kind==='drop' && Math.hypot(c.x-point.x,c.z-point.z)<.75);
     if (!cache) cache=this.spawnCache('drop','遗落物资',point.x,point.z,[],true);
     cache.model!.visible=true;
-    return transfer(bag,cache.entries,entry)>0;
+    if (transfer(bag,cache.entries,entry)>0) return true;
+    const alternative=this.spawnCache('drop','遗落物资',point.x,point.z,[],true);
+    return transfer(bag,alternative.entries,entry)>0;
   }
 
   cleanupDrops() {
     for (let i=this.caches.length-1;i>=0;i--) {
       const cache=this.caches[i];
       if (cache.kind==='drop' && !cache.entries.length) {
-        cache.model?.removeFromParent();
+        if (cache.model) this.view.assets.disposeCache(cache.model);
         this.caches.splice(i,1);
       }
     }
   }
 
-  heal(preferred?:'bandage'|'medkit') {
+  heal(preferred?:'bandage'|'medkit',entry?:Stack) {
     const p=this.player;
     const order=preferred ? [preferred] : p.hp<=49 ? ['medkit','bandage'] as const : ['bandage','medkit'] as const;
     for (const id of order) {
-      if (p.heal(id)) { this.audio.play('grab');this.events.notice('已使用 '+items[id].name);return true; }
+      if (p.heal(id,entry)) {
+        pruneQuick(p.kit);this.audio.play('grab');this.events.notice('已使用 '+items[id].name);return true;
+      }
     }
-    this.events.notice(p.hp>=100 ? '生命值已满' : '背包内无可用医疗品');
+    this.events.notice(p.hp>=100 ? '生命值已满' : '口袋或弹挂内无可用医疗品');
     return false;
   }
 
-  private hurt(damage:number,label:string) {
-    this.player.hurt(damage);
+  private hurt(damage:number,label:string,region:'head'|'body'='body') {
+    this.player.hurt(damage,region);
     this.damageLabel=label;
     if (this.search) this.events.notice('受伤 · 搜索中断');
     this.search=undefined;
@@ -268,7 +302,7 @@ export class Raid {
     const p=this.player,c=this.combat,id=c.id,weapon=id ? weapons[id] : undefined;
     const progress=this.activeExit ? 1-this.extracting/EXTRACT_SECONDS : this.search ? 1-this.search.remaining/this.search.duration : -1;
     const prompt=this.activeExit ? '保持在撤离区内' : this.search ? '搜索中 · 保持站定'
-      : this.exit ? 'E  请求撤离' : this.target ? 'E  '+(this.target.searched ? '查看 ' : '搜索 ')+this.target.name : '';
+      : this.exit ? 'E  请求撤离' : this.target ? 'E  '+(this.target.searched ? '查看 ' : '搜索 ')+this.target.name+' · '+lootNames[this.target.kind] : '';
     return {
       hp:Math.ceil(p.hp),stamina:Math.ceil(p.stamina),time:Math.max(0,Math.ceil(RAID_SECONDS-this.elapsed)),
       weapon:id ? items[id].name : knifeName, rounds:c.entry?.rounds ?? 0,reserve:c.reserve,knife:c.usingKnife,
@@ -302,8 +336,9 @@ export class Raid {
   }
 
   dispose() {
+    this.audio.setHearing(defaultHearing);
     this.enemies.dispose();
-    this.caches.forEach(cache => cache.model?.removeFromParent());
+    this.caches.forEach(cache => { if (cache.model) this.view.assets.disposeCache(cache.model); });
     this.view.resetEffects();
     this.audio.ambience(false);
   }

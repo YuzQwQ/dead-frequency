@@ -1,11 +1,11 @@
 import * as T from 'three';
 import { AssetFactory } from './assets.ts';
 import type { WeaponModel } from './assets.ts';
-import { sectorSolids } from './sector.ts';
+import { containerSites, sectorSolids } from './sector.ts';
 import type { Settings } from './save.ts';
 import type { Surface, Point } from './sector.ts';
 import type { WeaponId } from './data.ts';
-import { setKnifePose } from './knife-motion.ts';
+import { KnifeViewModel } from './knife-viewmodel.ts';
 import type { MeleeMotion } from './melee.ts';
 
 type Effect = {mesh:T.Mesh<T.BufferGeometry,T.MeshBasicMaterial>; life:number; type:'impact'|'tracer'; velocity:T.Vector3};
@@ -19,11 +19,12 @@ export class View {
   readonly world = new T.Scene();
   readonly dynamic = new T.Group();
   readonly solids = sectorSolids();
+  readonly cacheOutlines: T.LineSegments[] = [];
   private gunScene = new T.Scene();
   private gunCamera = new T.PerspectiveCamera(55,1,.035,5);
   private mount = new T.Group();
   private gunModels = new Map<WeaponId,WeaponModel>();
-  private knifeModel = this.assets.knife();
+  readonly knifeRig = new KnifeViewModel(this.assets.knife());
   private lamp = new T.SpotLight(0xe4efda,44,28,.46,.53,1.5);
   private lightTarget = new T.Object3D();
   private effects:Effect[] = [];
@@ -53,6 +54,14 @@ export class View {
     this.world.fog=new T.FogExp2(0x53645e,.020);
     this.camera.rotation.order='YXZ';
     this.world.add(this.assets.sector(this.solids),this.dynamic);
+    /* 静态容器的描边：它们烤在地图网格里，没有独立模型，所以按点位单独补一圈线 */
+    for (const site of containerSites) {
+      const line=this.assets.containerOutline(site.kind,site.h);
+      line.position.x=site.x;
+      line.position.z=site.z;
+      this.world.add(line);
+      this.cacheOutlines.push(line);
+    }
     this.skyLight=new T.HemisphereLight(0xc2d8cc,0x71614d,1.48);
     this.world.add(this.skyLight);
     const sun=new T.DirectionalLight(0xf0d6b0,1.33);
@@ -88,11 +97,8 @@ export class View {
     }));
     this.world.add(this.points);
 
-    this.gunScene.add(this.mount,new T.HemisphereLight(0xd5dfce,0x746e5e,2.15));
+    this.gunScene.add(this.mount,this.knifeRig.root,new T.HemisphereLight(0xd5dfce,0x746e5e,2.15));
     const key=new T.DirectionalLight(0xffdda9,1.65); key.position.set(-2,3,2); this.gunScene.add(key);
-    this.knifeModel.visible=false;
-    this.knifeModel.scale.setScalar(.87);
-    this.mount.add(this.knifeModel);
     for (const id of ['k9','ar56','p12'] as const) {
       const gun=this.assets.gun(id);
       gun.root.visible=false;
@@ -121,9 +127,11 @@ export class View {
   }
 
   dispose() {
+    this.knifeRig.dispose();
     this.points.geometry.dispose();
     (this.points.material as T.PointsMaterial).dispose();
     this.effects.forEach(effect => (effect.mesh.material as T.Material).dispose());
+    this.cacheOutlines.forEach(line => (line.material as T.Material).dispose());
     this.world.traverse(object => { if (object instanceof T.DirectionalLight) object.shadow.dispose(); });
     this.assets.dispose();
     this.renderer.dispose();
@@ -132,6 +140,25 @@ export class View {
 
   resetEffects() {
     for (const e of this.effects) { e.life=0; e.mesh.visible=false; }
+  }
+
+  /* 容器描边：远处完全透明，走到 7.5 米内开始亮起，3 米内最亮。
+     未搜过的用琥珀色带一点呼吸，搜过的转暗绿，减少已清区域的干扰。 */
+  updateCaches(caches:{key:string; x:number; z:number; searched:boolean; outline?:T.LineSegments; model?:T.Object3D}[], px:number, pz:number, time:number, targetKey?:string) {
+    for (const cache of caches) {
+      const line=cache.outline;
+      if (!line) continue;
+      if (cache.model && !cache.model.visible) { line.visible=false; continue; }
+      const distance=Math.hypot(cache.x-px,cache.z-pz);
+      const fade=T.MathUtils.clamp((7.5-distance)/3.6,0,1);
+      const material=line.material as T.LineBasicMaterial;
+      if (fade<=0) { material.opacity=0; line.visible=false; continue; }
+      const focus=cache.key===targetKey ? 1.18 : 1;
+      const pulse=cache.searched ? 1 : .84+.16*Math.sin(time*2.6);
+      material.opacity=Math.min(1,fade*(cache.searched?.30:.92)*pulse*focus);
+      material.color.setHex(cache.searched ? 0x8fae9c : 0xffe2b4);
+      line.visible=true;
+    }
   }
 
   private effect(type:Effect['type'],color:number,life:number) {
@@ -194,7 +221,8 @@ export class View {
   }
 
   weapon(id:WeaponId | undefined,ads:number,sprint:number,kick:number,reload:number,pump:number,flash:boolean,phase:number,sway:Point,near:number) {
-    this.knifeModel.visible=false;
+    this.knifeRig.root.visible=false;
+    this.setViewModelFov(55);
     const active=id ? this.gunModels.get(id) : undefined;
     for (const model of this.gunModels.values()) model.root.visible=model===active;
     if (active) {
@@ -211,10 +239,17 @@ export class View {
     this.mount.rotation.set(kick*.21-reload*.43-sprint*.39-near*.24,sprint*.46+near*.29,sway.x*.034-reload*.41-sprint*.16);
   }
 
-  knife(motion:Readonly<MeleeMotion>|null,phase:number,pace:number,sprint:number) {
+  knife(phase:number,pace:number,attack:Readonly<MeleeMotion>|null) {
     for (const model of this.gunModels.values()) model.root.visible=false;
-    this.knifeModel.visible=true;
-    setKnifePose(this.mount,motion,phase,pace,sprint);
+    this.knifeRig.root.visible=true;
+    this.setViewModelFov(this.knifeRig.config.fov);
+    this.knifeRig.update(performance.now()/1000,phase,pace,attack);
+  }
+
+  private setViewModelFov(fov:number) {
+    if (this.gunCamera.fov===fov) return;
+    this.gunCamera.fov=fov;
+    this.gunCamera.updateProjectionMatrix();
   }
 
   preview(time:number) {

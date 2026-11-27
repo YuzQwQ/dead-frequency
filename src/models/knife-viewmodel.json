@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "asset": "knife",
+  "fov": 55,
+  "scale": 0.83,
+  "root": {
+    "position": [
+      -0.02,
+      0.01,
+      0.005
+    ],
+    "rotation": [
+      1,
+      0,
+      1
+    ]
+  },
+  "rightArm": {
+    "position": [
+      0.34,
+      -0.245,
+      -0.695
+    ],
+    "rotation": [
+      0,
+      0,
+      0
+    ]
+  },
+  "wrist": {
+    "position": [
+      -0.14,
+      0.103,
+      -0.20600000000000002
+    ],
+    "rotation": [
+      0,
+      0,
+      0
+    ]
+  },
+  "itemSocket": {
+    "position": [
+      0.015,
+      0.03,
+      -0.095
+    ],
+    "rotation": [
+      24,
+      108,
+      -95
+    ]
+  },
+  "joints": {
+    "armRoot": -25,
+    "wrist": 0,
+    "palm": -6,
+    "fingerBase": 35,
+    "fingerMiddle": -30,
+    "fingerTip": -2,
+    "thumb": -25
+  },
+  "animation": {
+    "paused": false,
+    "breathing": 0.006,
+    "sway": 0.012
+  }
+}

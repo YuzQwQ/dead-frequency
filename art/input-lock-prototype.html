@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<title>Dead Frequency · 输入锁验证</title>
+<style>
+  body{margin:0;background:#192126;color:#e0e6dc;font:16px system-ui}
+  main{min-height:100vh;display:grid;place-items:center;background:#192126}
+  article{width:min(36rem,88vw);padding:1.5rem;background:#25302e;border:1px solid #607264}
+  button{padding:.55rem 1rem;color:inherit;background:#37483c;border:1px solid #778677;cursor:pointer}
+  output{display:block;font:14px monospace;margin:1rem 0}
+  pre{height:12rem;overflow:auto;font-size:12px;white-space:pre-wrap}
+  .field{cursor:crosshair}
+</style>
+<main id="surface">
+  <article>
+    <h1>浏览器输入锁验证</h1>
+    <p>Esc 暂停或关闭面板 · Tab 背包 · E 容器 · 左键测试攻击</p>
+    <button id="start">出发（网页全屏）</button>
+    <button id="resume" hidden>返回现场</button>
+    <button id="exit" hidden>退出网页全屏</button>
+    <output id="status"></output>
+    <pre id="log" aria-label="事件记录"></pre>
+  </article>
+</main>
+<script type="module">
+  const surface=document.querySelector('#surface');
+  const start=document.querySelector('#start');
+  const resume=document.querySelector('#resume');
+  const exit=document.querySelector('#exit');
+  const status=document.querySelector('#status');
+  const log=document.querySelector('#log');
+  const keyboard=navigator.keyboard;
+  const forceFallback=new URLSearchParams(location.search).has('fallback');
+  const state={screen:'ready', mouse:'free', keyboard:'off', dx:0, attacks:0};
+  const history=[];
+  let keyboardGeneration=0;
+  let started=false;
+  const locked=()=>document.pointerLockElement===surface;
+  const fullscreen=()=>document.fullscreenElement===surface;
+  const release=()=>{if (locked()) document.exitPointerLock();};
+  function render() {
+    status.value=`${state.screen} · fullscreen ${fullscreen()} · keyboard ${state.keyboard} · pointer ${state.mouse} · move ${state.dx} · attack ${state.attacks}`;
+    start.hidden=started&&fullscreen();
+    resume.hidden=!started||state.screen==='field'&&state.mouse==='locked';
+    exit.hidden=!fullscreen()||state.screen==='field';
+    surface.classList.toggle('field',state.screen==='field');
+  }
+  function note(message) {
+    history.push(`${performance.now().toFixed(0)} ${message}`);
+    log.textContent=history.slice(-100).join('\n');
+    log.scrollTop=log.scrollHeight;
+    render();
+  }
+  function show(screen) {
+    state.screen=screen;
+    state.mouse=locked() ? 'releasing' : 'free';
+    release();
+    note('show '+screen);
+  }
+  function rejected(error) {
+    if (state.screen!=='field') return;
+    state.mouse='waiting';
+    note('pointer request failed: '+(error?.name ?? 'pointerlockerror'));
+  }
+  function enterField() {
+    state.screen='field';
+    state.mouse=locked() ? 'locked' : 'waiting';
+    note('enter field, activation='+navigator.userActivation.isActive);
+    if (locked()) return;
+    try {
+      const request=surface.requestPointerLock();
+      if (request) void request.catch(rejected);
+    } catch (error) {rejected(error);}
+  }
+  start.addEventListener('click',()=>{
+    started=true;
+    state.dx=state.attacks=0;
+    // Fullscreen consumes activation. Start both requests in the original click, pointer first.
+    enterField();
+    if (!forceFallback && keyboard?.lock && surface.requestFullscreen) void surface.requestFullscreen().catch(error=>{
+      state.keyboard='fallback';note('fullscreen failed: '+error.name);
+    });
+    else {state.keyboard='fallback';note('fullscreen keyboard lock unavailable or skipped');}
+  });
+  resume.addEventListener('click',enterField);
+  exit.addEventListener('click',()=>void document.exitFullscreen());
+  document.addEventListener('fullscreenchange',async()=>{
+    const generation=++keyboardGeneration;
+    if (!fullscreen()) {
+      keyboard?.unlock?.();
+      if (state.keyboard!=='fallback') state.keyboard='off';
+      state.dx=0;
+      show('pause');
+      note('fullscreen exited');
+      return;
+    }
+    state.keyboard='pending';
+    note('fullscreen entered');
+    try {
+      if (!keyboard?.lock) throw new Error('unsupported');
+      await keyboard.lock(['Escape']);
+      if (generation!==keyboardGeneration || !fullscreen()) return;
+      state.keyboard='locked';
+      note('keyboard locked');
+    } catch (error) {
+      if (generation!==keyboardGeneration) return;
+      state.keyboard='fallback';note('keyboard unavailable: '+error.name);
+      if (fullscreen()) void document.exitFullscreen().catch(error=>note('fullscreen exit failed: '+error.name));
+    }
+  });
+  document.addEventListener('pointerlockchange',()=>{
+    if (locked()) {
+      if (state.screen!=='field' || !document.hasFocus()) {release();return;}
+      state.mouse='locked';
+    } else if (state.mouse==='releasing') state.mouse='free';
+    else if (state.screen==='field' && state.mouse==='locked') {show('pause');return;}
+    note('pointer '+state.mouse);
+  });
+  document.addEventListener('pointerlockerror',()=>rejected());
+  window.addEventListener('blur',()=>{if (started) {state.dx=0;show('pause');}});
+  document.addEventListener('keydown',event=>{
+    if (!started || !['Escape','Tab','KeyE'].includes(event.code)) return;
+    if (event.code==='Escape' && state.keyboard!=='locked' && locked()) return;
+    if (event.repeat) {event.preventDefault();return;}
+    if (event.code==='KeyE' && (!locked()||state.screen!=='field')) return;
+    event.preventDefault();
+    if (state.screen!=='field') {enterField();return;}
+    show(event.code==='Escape'?'pause':event.code==='Tab'?'bag':'container');
+  });
+  document.addEventListener('mousemove',event=>{
+    if (state.screen==='field'&&locked()) {state.dx+=event.movementX;render();}
+  });
+  document.addEventListener('mousedown',event=>{
+    if (event.button===0&&state.screen==='field'&&locked()) {
+      state.attacks++;
+      render();
+    }
+  });
+  window.lockPrototype={state,history};
+  render();
+</script>
+</html>

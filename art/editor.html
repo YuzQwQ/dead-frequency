@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>建模编辑器 / Dead Frequency</title>
+  </head>
+  <body>
+    <header class="app-bar">
+      <div class="brand">
+        <span class="brand-icon" aria-hidden="true"><i></i><i></i><i></i></span>
+        <div><p>DEAD FREQUENCY</p><h1>建模编辑器</h1></div>
+      </div>
+      <label class="asset-picker">当前模型
+        <select id="asset"><option value="p12">Remington 870</option><option value="ar56">M4A1</option><option value="k9">Glock 17</option><option value="knife">简易小刀</option></select>
+      </label>
+      <nav class="actions" aria-label="编辑操作">
+        <div class="history"><button data-action="undo" title="Ctrl+Z">撤销</button><button data-action="redo" title="Ctrl+Shift+Z">重做</button></div>
+        <button data-action="import">打开配方</button>
+        <button id="write-file" data-action="write" hidden>写回文件</button>
+        <button class="primary" data-action="export">导出 JSON</button>
+      </nav>
+      <input id="file" type="file" accept=".json,application/json" hidden>
+    </header>
+    <main class="workspace">
+      <aside class="panel hierarchy" aria-label="部件层级">
+        <div class="panel-title"><h2>部件</h2><span id="count"></span></div>
+        <div class="tree-actions">
+          <label for="filter" class="sr-only">筛选部件</label>
+          <input id="filter" type="search" placeholder="查找部件">
+          <div class="new-part">
+            <select id="new-kind" aria-label="部件类型">
+              <option value="box">方盒</option><option value="barrel">八边圆柱</option>
+              <option value="profile">挤出轮廓</option><option value="loft">八边截面体</option><option value="group">分组</option>
+            </select>
+            <button data-action="add">添加</button>
+          </div>
+        </div>
+        <div id="tree" class="tree"></div>
+        <footer class="panel-footer"><button data-action="reset">重置为原配方</button></footer>
+      </aside>
+      <section class="workbench" aria-label="模型工作区">
+        <div class="view-bar">
+          <div class="segments" aria-label="变换模式">
+            <button data-tool="select" aria-pressed="false">选择</button>
+            <button data-tool="translate" aria-pressed="true" title="W">移动</button>
+            <button data-tool="rotate" aria-pressed="false" title="E">旋转</button>
+          </div>
+          <div class="views">
+            <select id="angle" aria-label="镜头视角">
+              <option value="perspective">透视</option><option value="side">侧视</option>
+              <option value="front">正视</option><option value="top">俯视</option>
+            </select>
+            <select id="view" aria-label="可见部件">
+              <option value="weapon">仅武器</option><option value="with-hands">武器和手部</option>
+            </select>
+            <button data-action="fit" title="F">居中</button>
+            <button data-action="reference">参考图</button>
+          </div>
+        </div>
+        <div id="viewport">
+          <span id="view-caption" class="view-caption"></span>
+          <div class="view-help">拖动空白处旋转 · 滚轮缩放 · 右键拖动平移</div>
+          <label id="pose-control" class="pose-control" hidden>泵柄预览 <input id="pose" type="range" min="0" max="1" step=".01" value="0"></label>
+        </div>
+      </section>
+      <aside class="panel inspector" aria-label="属性">
+        <div class="panel-title"><h2>属性</h2><span id="part-kind"></span></div>
+        <div id="properties"></div>
+      </aside>
+    </main>
+    <footer class="status-bar"><span id="status" role="status" aria-live="polite">正在打开模型…</span><span id="target-file"></span></footer>
+    <dialog id="reference-dialog">
+      <div class="dialog-top"><h2>外观参考</h2><button data-action="close-reference">关闭</button></div>
+      <img id="reference-image" alt="所选模型的侧视设计稿">
+    </dialog>
+    <script type="module" src="/src/tools/model-editor.ts"></script>
+  </body>
+</html>

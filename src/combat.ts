@@ -1,6 +1,6 @@
 import { weapons } from './data.ts';
 import type { WeaponId } from './data.ts';
-import { inventoryCount, spend } from './inventory.ts';
+import { inventoryCount, quickGrids, spend } from './inventory.ts';
 import type { Stack } from './inventory.ts';
 import type { Player } from './player.ts';
 import type { Input } from './input.ts';
@@ -32,7 +32,10 @@ export class Combat {
   get usingKnife() { return this.slot==='knife'; }
   get entry():Stack|undefined { return this.slot==='knife' ? undefined : this.player.kit.gear[this.slot]; }
   get id() { return this.entry?.id as WeaponId|undefined; }
-  get reserve() { return this.id ? inventoryCount(this.player.kit.bag,weapons[this.id].ammo) : 0; }
+  get reserve() {
+    const id=this.id;
+    return id ? quickGrids(this.player.kit).reduce((sum,entries)=>sum+inventoryCount(entries,weapons[id].ammo),0) : 0;
+  }
   get cycling() { return this.pump>0; }
 
   private select(slot:'primary'|'secondary'|'knife') {
@@ -98,7 +101,13 @@ export class Combat {
       if (id==='p12' && shot && (entry.rounds ?? 0)>0) this.reload=0;
       else if (this.reload===0) {
         const rounds=entry.rounds ?? 0;
-        entry.rounds=rounds+spend(this.player.kit.bag,def.ammo,id==='p12' ? 1 : def.capacity-rounds);
+        let needed=id==='p12' ? 1 : def.capacity-rounds;
+        for (const entries of quickGrids(this.player.kit)) {
+          const used=spend(entries,def.ammo,needed);
+          entry.rounds=(entry.rounds ?? 0)+used;
+          needed-=used;
+          if (!needed) break;
+        }
         this.audio.play('grab');
         if (id==='p12' && !shot && !input.fire) this.startReload(false);
       }
@@ -136,7 +145,7 @@ export class Combat {
       const target=this.enemies.hitRay(x,y,z,dx,dy,dz,Math.min(world.distance,ground));
       if (target) {
         const falloff=1-Math.max(0,target.length/def.range-.46)*(id==='p12' ? 1.25 : .62);
-        this.enemies.damage(target.victim,def.damage*(target.headshot ? 1.7 : 1)*falloff,p);
+        this.enemies.damage(target.victim,def.damage*(target.headshot ? 1.7 : 1)*falloff,p,target.headshot?'head':'body');
         this.hit=.16;
         this.headshot=target.headshot;
         this.view.impact(x+dx*target.length,y+dy*target.length,z+dz*target.length,target.victim.kind==='echo' ? 'echo' : 'enemy');
@@ -166,7 +175,7 @@ export class Combat {
   render() {
     const id=this.id,p=this.player;
     if (this.usingKnife) {
-      this.view.knife(this.melee.active,p.phase,Math.min(p.speed/4,1),p.sprint);
+      this.view.knife(p.phase,Math.min(p.speed/4,1),this.melee.active);
       return;
     }
     const visualReload=id && this.reload>0

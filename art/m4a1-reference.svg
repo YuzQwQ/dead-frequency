@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 330" role="img" aria-labelledby="title">
+  <title id="title">Dead Frequency M4A1 黑灰配色侧视稿</title>
+  <rect width="900" height="330" fill="#e5e6e3"/>
+  <g transform="translate(27 23)">
+    <path d="M38 137H240V155H38Z" fill="#32373c"/>
+    <path d="M17 133H58V159H17L11 154V139Z" fill="#25292d"/>
+    <path d="M19 140H47V152H19Z" fill="#141719"/>
+    <path d="M129 152V86H143L190 141H178L144 102V152Z" fill="#35393e"/>
+    <path d="M179 135H226V156H179Z" fill="#292d32"/>
+    <path d="M212 122L226 115H367L380 124V164L368 174H221L209 164Z" fill="#393d42"/>
+    <path d="M226 115H366L374 122H220Z" fill="#666c72"/>
+    <path d="M232 119V171M247 119V171M262 119V171M277 119V171M292 119V171M307 119V171M322 119V171M337 119V171M352 119V171" stroke="#23282c" stroke-width="5"/>
+    <path d="M377 124V93L387 81L529 72L546 91L551 124H530L523 87L391 94L387 124Z" fill="#373c42"/>
+    <path d="M383 122H556L575 135V164L553 178H441L379 170Z" fill="#50565b"/>
+    <path d="M390 166H556L549 196L517 206H403L390 187Z" fill="#373c41"/>
+    <path d="M410 196H456L449 230L437 263L385 254L398 225Z" fill="#484d52"/>
+    <path d="M415 205L403 251M431 207L420 254" stroke="#30353a" stroke-width="5"/>
+    <path d="M456 190H508L514 202L502 217H467L456 208ZM466 197V205L472 210H499L505 201L503 197Z" fill="#202428" fill-rule="evenodd"/>
+    <path d="M515 190L543 188L574 251L542 266L529 254L505 203Z" fill="#2b2f33"/>
+    <path d="M552 139H657V159H552Z" fill="#42484d"/>
+    <path d="M629 128H774L780 139V169H631L621 156Z" fill="#41464b"/>
+    <path d="M645 166H670L757 214H775V235H750L659 184H643Z" fill="#353a3e"/>
+    <path d="M772 124H787L794 133V234H777L771 228Z" fill="#272a2f"/>
+    <path d="M460 135H524V152H460Z" fill="#2e3338"/>
+    <circle cx="536" cy="174" r="5" fill="#24292e"/>
+  </g>
+</svg>

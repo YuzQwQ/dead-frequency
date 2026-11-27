@@ -61,21 +61,32 @@ export const obstacles:Solid[] = [
 // Coordinates refer to the lowest step. Positive direction runs toward north.
 export const stairs = [{x:-30.7,z:-.52,width:2.55,tread:.46,rise:.17,steps:4}];
 
+/* 六级容器，每级至少两处。北侧研究室放异常与密封，越深越值钱。 */
 export const containerSites:ContainerSite[] = [
+  /* 南侧外围：低级工具与补给 */
   {name:'路边工具箱',kind:'tool',x:-4,z:30.5,h:.7},
   {name:'报废检修箱',kind:'tool',x:-25,z:20.5,h:.84},
   {name:'维修部储物柜',kind:'file',x:-25.8,z:11,h:1.28},
+  {name:'车间应急箱',kind:'medical',x:-13.6,z:19.8,h:.7},
   {name:'诊疗急救箱',kind:'medical',x:18.8,z:24,h:.7},
   {name:'医疗站药柜',kind:'medical',x:23.5,z:17,h:1.26},
   {name:'散落货箱',kind:'tool',x:11,z:8,h:.75},
   {name:'露天军用箱',kind:'supply',x:-3.2,z:4.5,h:.86},
+  /* 中部：仓库与调度 */
   {name:'货运补给箱',kind:'supply',x:-27,z:-6.7,h:.88},
+  {name:'封存货箱',kind:'supply',x:-32.2,z:-20.2,h:.9},
   {name:'仓库调度柜',kind:'file',x:-23,z:-20.5,h:1.24},
-  {name:'北侧检修箱',kind:'tool',x:-23,z:-30.2,h:.75},
-  {name:'安保军需箱',kind:'supply',x:27.2,z:-8.1,h:.87},
   {name:'调度档案柜',kind:'file',x:16,z:-17,h:1.3},
+  {name:'调度密件柜',kind:'sealed',x:22.5,z:-18.2,h:1.1},
+  {name:'安保军需箱',kind:'supply',x:27.2,z:-8.1,h:.87},
+  {name:'北侧检修箱',kind:'tool',x:-23,z:-30.2,h:.75},
+  /* 北侧研究室：密封与异常，全图最值钱 */
   {name:'密封档案柜',kind:'sealed',x:-6.4,z:-31.5,h:1.33},
   {name:'谐振样本保险箱',kind:'sealed',x:5.5,z:-32,h:1.05},
+  {name:'失谐仪器柜',kind:'anomaly',x:-7.2,z:-23.6,h:.42},
+  {name:'低鸣样本箱',kind:'anomaly',x:9.4,z:-23.2,h:.45},
+  {name:'机房工具柜',kind:'tool',x:.2,z:-29.8,h:1.2},
+  /* 东侧外围 */
   {name:'被遗弃的帆布箱',kind:'medical',x:34,z:-19,h:.68},
 ];
 

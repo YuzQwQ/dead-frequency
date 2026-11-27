@@ -48,7 +48,8 @@ try {
 
   const raid=await context.newPage();
   const profile=newProfile();
-  profile.kit.gear.primary=stack(id);
+  if (id==='k9') profile.kit.gear.secondary=stack(id);
+  else profile.kit.gear.primary=stack(id);
   insert(profile.kit.bag,stack(weapons[id].ammo,7));
   await raid.addInitScript(({key,profile})=>{
     localStorage.setItem(key,JSON.stringify(profile));

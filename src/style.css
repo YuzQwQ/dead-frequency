@@ -142,19 +142,24 @@ small { font-size: .8em; }
 .item-list { margin-top:.75rem; }
 .item-row {
   --quality:#a1a99e;
-  display:grid;grid-template-columns:38px minmax(5rem,1fr) auto;align-items:center;gap:.65rem;
-  min-height:58px;padding:.48rem .5rem;border-left:2px solid var(--quality);
+  --edge-alpha:.26;
+  position:relative;
+  display:grid;grid-template-columns:78px minmax(5rem,1fr) auto;align-items:center;gap:.65rem;
+  min-height:58px;padding:.48rem .5rem;
   background:#222f27;border-bottom:1px solid #40514487;
 }
+.item-row:hover { --edge-alpha:.6; }
 .item-row:nth-child(even) { background:#253229; }
-.item-row.r2 { --quality:#94bf88; }
-.item-row.r3 { --quality:#95b9d3; }
-.item-row.r4 { --quality:#d3b273; }
-.item-row.r5 { --quality:#cfade1; }
+.item-row.r2 { --quality:#94bf88;--edge-alpha:.42; }
+.item-row.r3 { --quality:#95b9d3;--edge-alpha:.46; }
+.item-row.r4 { --quality:#d3b273;--edge-alpha:.52; }
+.item-row.r5 { --quality:#cfade1;--edge-alpha:.58; }
 .item-icon {
   min-height:34px;display:grid;place-items:center;color:var(--quality);background:#17221c;border:1px solid #4d5e52;
-  font:700 .83rem var(--mono);
+  font:700 .83rem var(--mono);padding:2px;
 }
+.item-icon.has-icon img { width:100%;height:100%;max-height:42px;object-fit:contain;display:block;
+  filter:drop-shadow(0 1px 2px #060b08aa); }
 .item-copy { min-width:0;display:grid;gap:.22rem; }
 .item-copy strong { color:#edf0df;font-size:.9rem;letter-spacing:.008em; }
 .item-copy small { color:#acb6a6;font-size:.74rem; }
@@ -165,18 +170,44 @@ small { font-size: .8em; }
 .cell-grid { display:grid;grid-template-columns:repeat(auto-fill,var(--cell,54px));gap:6px;margin:.75rem 0 .3rem;justify-content:start; }
 .cell {
   --quality:#a1a99e;
+  --edge-alpha:.5;
   position:relative;width:var(--cell,54px);height:var(--cell,54px);display:grid;place-items:center;background:#1b2721;
-  border:1px solid #43524a;border-left:2px solid var(--quality);color:var(--quality);
+  border:1px solid color-mix(in srgb,var(--quality) 24%,#38473e);color:var(--quality);
   cursor:pointer;user-select:none;transition:background .12s,border-color .12s;
 }
-.cell:hover,.cell:focus-visible { background:#26352c;outline:1px solid var(--quality);outline-offset:1px; }
-.cell.r2 { --quality:#94bf88; }
-.cell.r3 { --quality:#95b9d3; }
-.cell.r4 { --quality:#d3b273; }
-.cell.r5 { --quality:#cfade1; }
+.cell:hover,.cell:focus-visible { background:#26352c;--edge-alpha:.95; }
+.cell.r2 { --quality:#94bf88;--edge-alpha:.64; }
+.cell.r3 { --quality:#95b9d3;--edge-alpha:.7; }
+.cell.r4 { --quality:#d3b273;--edge-alpha:.78; }
+.cell.r5 { --quality:#cfade1;--edge-alpha:.84; }
+/* 稀有度描边：整圈一条缓慢流动的色带，取代原来那条左侧色条。
+   走 conic-gradient + 1px 遮罩环，线宽恒定，不吃格子内空间，多格物品也整圈包住。 */
+@property --edge-angle { syntax:'<angle>'; initial-value:0deg; inherits:false; }
+.cell::after, .item-row::after {
+  content:'';position:absolute;inset:-1px;pointer-events:none;border-radius:2px;
+  padding:1px;box-sizing:border-box;opacity:var(--edge-alpha,.5);
+  background:conic-gradient(from var(--edge-angle),
+    color-mix(in srgb,var(--quality) 46%,#0c1512) 0deg,
+    var(--quality) 70deg,
+    color-mix(in srgb,var(--quality) 30%,#fff) 136deg,
+    var(--quality) 204deg,
+    color-mix(in srgb,var(--quality) 46%,#0c1512) 360deg);
+  -webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;
+}
+/* 流光只在指针停留时跑：几十个格子同时重绘渐变会吃掉约两成帧率，
+   静态时用固定角度的渐变（左上亮、右下暗）已经够读出稀有度。 */
+.cell:hover::after,.cell:focus-visible::after,.item-row:hover::after { animation:edge-flow 4.5s linear infinite; }
+@keyframes edge-flow { to { --edge-angle:360deg; } }
 .cell-mark { font:700 .82rem var(--mono);letter-spacing:.02em; }
+/* 有图标的格子：代号退场。用 inset 定位而不是百分比宽高——
+   多格物品的格子是宽扁的（步枪占 5×2），按百分比算宽高会把图标压小。 */
+.cell-img { position:absolute;left:2px;top:2px;width:calc(100% - 4px);height:calc(100% - 4px);
+  object-fit:contain;pointer-events:none;filter:drop-shadow(0 1px 2px #060b08aa); }
+.cell.with-name .cell-img { height:calc(100% - 19px); }
+.cell.has-icon i { z-index:2; }
 .cell i { position:absolute;right:2px;bottom:1px;font:700 .62rem var(--mono);font-style:normal;color:#e9edd9;background:#0d1310cc;padding:0 3px; }
-/* 仓库格：代号居中、名称压底，70px 能放下四五个汉字 */
+/* 仓库格：图/代号居中、名称压底，70px 能放下四五个汉字 */
 .cell.with-name { padding-bottom:15px; }
 .cell.with-name .cell-mark { margin-top:-5px;font-size:.95rem; }
 /* 名称占了底边，数量角标挪到右上，避免压字 */
@@ -188,11 +219,37 @@ small { font-size: .8em; }
 .cell:hover .cell-name,.cell:focus-visible .cell-name { color:#e2e9d6; }
 .cell-slot { display:grid;gap:.18rem;min-width:0; }
 .cell-slot small { color:#8e9b8f;font-size:.62rem;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+.inventory-scroll {max-width:100%;max-height:min(48vh,420px);overflow:auto;margin:.6rem 0;overscroll-behavior:contain;}
+.inventory-grid {
+  --inventory-cell:42px;position:relative;display:grid;width:max-content;overflow:hidden;
+  grid-template-columns:repeat(var(--columns),var(--inventory-cell));
+  grid-template-rows:repeat(var(--rows),var(--inventory-cell));
+  background-color:#111915;
+  background-image:linear-gradient(to right,#405048 1px,transparent 1px),linear-gradient(to bottom,#405048 1px,transparent 1px);
+  background-size:var(--inventory-cell) var(--inventory-cell);
+  box-shadow:inset -1px -1px #405048;
+}
+.inventory-item {min-width:0;min-height:0;padding:1px;z-index:1;touch-action:none;}
+.inventory-item .cell,.inventory-ghost .cell {width:100%;height:100%;pointer-events:auto;}
+.inventory-item .cell i,.inventory-ghost .cell i {top:auto;bottom:1px;}
+.inventory-item .cell-name {right:1.1rem;}
+.inventory-item[data-rotated="true"] .cell-mark,.inventory-ghost[data-rotated="true"] .cell-mark {transform:rotate(90deg);}
+.inventory-item[data-rotated="true"] .cell .cell-img,.inventory-ghost[data-rotated="true"] .cell .cell-img {
+  position:absolute;left:50%;top:50%;margin:0;max-height:none;
+  width:calc(var(--icon-rows) * var(--inventory-cell) * .82);
+  height:calc(var(--icon-cols) * var(--inventory-cell) * .82);
+  transform:translate(-50%,-50%) rotate(90deg);
+}
+.inventory-item.inventory-origin {opacity:.3;}
+.inventory-ghost {position:fixed;z-index:1000;pointer-events:none;opacity:.86;}
+.inventory-ghost .cell {pointer-events:none;margin:0;}
+.inventory-highlight {pointer-events:none;position:absolute;z-index:2;border:2px solid #d56e68;background:#ad46484d;}
+.inventory-highlight.valid {border-color:#9ace80;background:#76a75d55;}
 /* ---------- 仓库 ---------- */
 /* 让面板撑到视口底部：仓库内容少的时候不至于缩成一小条 */
 .stash-screen { min-height:calc(100dvh - 74px);display:flex;flex-direction:column; }
 .stash-screen .screen-grid { flex:1;min-height:0; }
-.stash-layout { grid-template-columns:minmax(0,1.75fr) minmax(286px,1fr);align-items:stretch; }
+.stash-layout { grid-template-columns:minmax(0,1.3fr) minmax(400px,1fr);align-items:stretch; }
 .stash-box { display:flex;flex-direction:column;gap:.62rem;padding:1rem 1.05rem 1.05rem; }
 .stash-head { display:flex;align-items:flex-start;justify-content:space-between;gap:.8rem;flex-wrap:wrap; }
 .stash-title { display:flex;align-items:baseline;gap:.62rem;flex-wrap:wrap; }
@@ -231,17 +288,22 @@ small { font-size: .8em; }
 .kit-box .relief { margin-top:1rem; }
 /* 单击详情：挂在 body 上，不跟面板重建 */
 .item-tip {
-  --quality:#a1a99e;position:fixed;z-index:80;width:250px;padding:.75rem .8rem;
-  background:#16211b;border:1px solid #55685a;border-left:2px solid var(--quality);
-  box-shadow:0 12px 32px #0008;pointer-events:none;
+  --quality:#a1a99e;position:fixed;z-index:80;width:min(286px,calc(100vw - 24px));padding:.75rem .8rem;
+  background:#16211b;border:1px solid color-mix(in srgb,var(--quality) 45%,#3c4b41);
+  box-shadow:0 12px 32px #0008,inset 0 0 22px -12px var(--quality);
+  pointer-events:none;
 }
 .item-tip.r2 { --quality:#94bf88; } .item-tip.r3 { --quality:#95b9d3; }
 .item-tip.r4 { --quality:#d3b273; } .item-tip.r5 { --quality:#cfade1; }
 .item-tip .tip-head { display:flex;gap:.55rem;align-items:center; }
 .item-tip .tip-mark { width:34px;height:34px;display:grid;place-items:center;background:#0f1712;border:1px solid #4a5b4f;font:700 .8rem var(--mono);color:var(--quality);flex:none; }
+/* 枪是横长的图，固定 40×40 方框会把枪缩成一条线，所以这里允许横向撑开 */
+.item-tip .tip-mark.has-icon { width:auto;min-width:42px;max-width:108px;height:42px;padding:3px 5px;background:#141d18; }
+.item-tip .tip-mark.has-icon img { width:auto;height:36px;max-width:98px;object-fit:contain;
+  filter:drop-shadow(0 1px 2px #060b08aa); }
 .item-tip strong { color:#eef1e1;font-size:.9rem; }
 .item-tip .tip-head small { display:block;color:var(--quality);font-size:.7rem; }
-.item-tip p { margin:.6rem 0;color:#b4bfb2;font-size:.78rem;line-height:1.55; }
+.item-tip p { margin:.42rem 0;color:#b4bfb2;font-size:.78rem;line-height:1.55;white-space:pre-line; }
 .item-tip dl { display:grid;gap:.25rem;margin:0; }
 .item-tip dl>div { display:flex;justify-content:space-between;font-size:.72rem;color:#97a396; }
 .item-tip dd { margin:0;color:#dfe4d2;font-family:var(--mono); }
@@ -253,13 +315,15 @@ small { font-size: .8em; }
 .ctx-row.danger { color:#d99a8c; }
 .ctx-row.danger:hover { background:#3a2622;color:#ffc9bb; }
 .vendor-list { display:grid;gap:1rem; }
-.gear { display:grid;gap:.5rem;margin:.75rem 0 1.15rem; }
-.gear-slot { background:#222e26;border:1px solid #435246;min-height:58px;padding:.4rem .48rem;display:flex;flex-direction:column;justify-content:center; }
-.gear-slot>small { display:block;color:#b0bcaf;margin-bottom:.24rem; }
-.gear-slot .item-row { border-bottom:0;min-height:47px; }
-.slot-empty,.empty { color:var(--muted);font-size:.9rem; }
-.slot-empty { display:block;padding:.12rem 0; }
-.empty { padding:.9rem .2rem; }
+/* 装备栏的槽位样式统一由 inventory-screen.css 负责，这里只留分区容器的基础布局 */
+.gear-partitions { display:flex;flex-wrap:wrap;gap:.55rem;align-items:flex-start; }
+.carried-section .inventory-scroll,.gear-partitions .inventory-scroll { margin:0; }
+.pack-storage { min-width:0; }
+.corpse-dialog .screen-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+@media (max-width:680px) {
+  .corpse-dialog .screen-grid { grid-template-columns:minmax(0,1fr); }
+}
+.empty { color:var(--muted);font-size:.9rem;padding:.9rem .2rem; }
 .capacity { font:700 .86rem var(--mono); }
 .capacity.full { color:var(--red); }
 .capacity-track,.progress { height:4px;background:#101711;margin-top:.5rem; }
@@ -339,6 +403,9 @@ kbd { font:700 .75rem var(--mono);color:#d0dccb;background:#1f2b23;border:1px so
 .modal-actions { display:flex;align-items:center;flex-wrap:wrap;gap:.45rem; }
 .pause-dialog { max-width:520px; }
 .pause-dialog .modal-actions { margin-top:1.4rem; }
+.pointer-prompt { position:fixed;inset:0;display:grid;place-items:center;z-index:16;pointer-events:none; }
+.pointer-prompt[hidden] { display:none; }
+.pointer-prompt button { pointer-events:auto; }
 .inventory-dialog { width:min(100%,1050px); }
 .inventory-dialog .screen-grid { margin-top:.9rem; }
 .gear-on-cache { grid-column:1/-1; }
@@ -353,7 +420,7 @@ kbd { font:700 .75rem var(--mono);color:#d0dccb;background:#1f2b23;border:1px so
 .result-dialog dt { color:var(--muted); }
 .result-dialog dd { color:var(--ink);font-family:var(--mono);font-weight:750; }
 
-@media (max-width: 1030px) {
+@media (max-width: 880px) {
   .item-row { grid-template-columns:34px minmax(0,1fr); }
   .item-actions { grid-column:2;justify-content:flex-start; }
   .stash-layout { grid-template-columns:1fr; }
@@ -384,4 +451,57 @@ kbd { font:700 .75rem var(--mono);color:#d0dccb;background:#1f2b23;border:1px so
 }
 @media (prefers-reduced-motion: reduce) {
   *,*::before,*::after { transition:none !important; }
+}
+
+/* ---------- 搜索扫描：未搜出的物品只露剪影，扫过之后才亮出来 ---------- */
+@keyframes scan-sweep { 0% { left:-4%; } 100% { left:100%; } }
+@keyframes lens-orbit {
+  from { transform:rotate(0deg) translateX(5px) rotate(0deg); }
+  to { transform:rotate(360deg) translateX(5px) rotate(-360deg); }
+}
+@keyframes scan-glint {
+  0% { opacity:0; background-position:180% 0; }
+  28% { opacity:.9; }
+  100% { opacity:0; background-position:-80% 0; }
+}
+@keyframes scan-pop { from { opacity:.35; filter:brightness(.35); } to { opacity:1; filter:brightness(1); } }
+@keyframes veil-out {
+  0% { opacity:1; visibility:visible; }
+  92% { opacity:0; visibility:visible; }
+  100% { opacity:0; visibility:hidden; }
+}
+/* 真身从暗到亮，跟面纱一起揭开 */
+.cell.scanning > :not(.scan-veil) { animation:scan-pop .3s ease-out var(--reveal-at,0ms) backwards; }
+/* 揭开那一下的斜光。用背景位移做，不会被格子边界裁断 */
+.cell.scanning::before {
+  content:'';position:absolute;inset:0;z-index:3;pointer-events:none;
+  background:linear-gradient(104deg,transparent 34%,rgba(255,250,232,.5) 50%,transparent 66%);
+  background-size:220% 100%;background-position:180% 0;opacity:0;
+  animation:scan-glint .55s ease-out var(--reveal-at,0ms) forwards;
+}
+.scan-veil {
+  position:absolute;inset:0;z-index:4;overflow:hidden;
+  background:#0d1a15e8;border:1px dashed #5f8c7b;
+  animation:veil-out .34s ease-out var(--reveal-at,0ms) forwards;
+}
+.scan-veil .cell-img { filter:grayscale(.55) brightness(.85) blur(.4px);opacity:.5; }
+.scan-veil .cell-mark { color:#5f8b7b;opacity:.6; }
+.scan-veil .inventory-slot-icon { opacity:.28; }
+.scan-veil .scan-line {
+  position:absolute;top:0;bottom:0;width:3px;background:#9fe6cb;
+  box-shadow:0 0 10px #57d8ad,0 0 26px #2f9a7a66;
+  animation:scan-sweep 1.05s linear infinite;
+}
+.scan-veil .scan-lens {
+  position:absolute;left:50%;top:50%;width:24px;height:24px;margin:-12px 0 0 -12px;
+  display:grid;place-items:center;border-radius:50%;color:#b6efd8;
+  background:radial-gradient(circle,#08120fd9 55%,#08120f00 74%);
+  animation:lens-orbit 1.4s linear infinite;
+}
+.scan-veil .scan-lens svg { display:block;width:14px;height:14px;opacity:.95; }
+@media (prefers-reduced-motion: reduce) {
+  .cell::after,.item-row::after { animation:none !important; }
+  .cell.scanning::before { display:none; }
+  .scan-veil { animation-delay:0ms !important;animation-duration:1ms !important; }
+  .scan-veil .scan-line,.scan-veil .scan-lens { display:none; }
 }
